@@ -1,0 +1,44 @@
+format_version = 5
+id = "sf2.enhancements"
+version = "1.0.0"
+name = "Syphon Filter 2 Enhancements"
+author = "SF2 Recompiled project"
+description = "Optional, independently toggleable PC presentation and input enhancements."
+license = "PolyForm-Noncommercial-1.0.0"
+save_compatibility = "shared"
+
+[[target]]
+game_id = "SCUS-94451"
+
+[[feature]]
+id = "mouse-look"
+name = "Mouse Look"
+description = "Direct relative-mouse camera control with authored camera ownership guards."
+group = "Controls"
+default_enabled = false
+
+[[feature]]
+id = "widescreen"
+name = "Widescreen (16:9)"
+description = "Native-wide world rendering with the title-specific HUD and backdrop rules."
+group = "Graphics"
+default_enabled = false
+
+[[feature]]
+id = "pgxp"
+name = "PGXP Geometry Correction"
+description = "Uses precise GTE provenance to reduce polygon wobble and texture warping."
+group = "Graphics"
+default_enabled = false
+
+[[plugin]]
+feature = "mouse-look"
+id = "sf2.mouse-look"
+
+[[plugin]]
+feature = "widescreen"
+id = "sf2.widescreen"
+
+[[plugin]]
+feature = "pgxp"
+id = "sf2.pgxp"

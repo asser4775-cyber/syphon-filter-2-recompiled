@@ -1,14 +1,23 @@
-# v0.1.0-alpha
+# v0.1.1-alpha
 
 Initial public playtest release for Syphon Filter 2 Disc 1 (USA, SCUS-94451).
+
+This revision adds the shared PSXRecomp graphical launcher and a double-click
+setup path. `SETUP.bat` auto-detects a neighboring Disc 1 CUE even when Disc 2
+is also present, auto-detects PATH/MSYS2 MinGW toolchains, builds locally, and
+opens the launcher. Later runs use `play.bat`.
+
+Mouse Look, Widescreen (16:9), and PGXP are now independent Mods and all
+default to disabled. The Controls page supports two bindings per retail PAD
+control, Mouse1--Mouse5, and immediate same-launch persistence.
 
 Included:
 
 - statically recompiled resident executable;
 - compatibility interpreter for uncovered streamed overlays;
-- native 16:9 world presentation with authored 4:3 handling where classified;
-- PGXP-assisted geometry with atomic fallback when provenance is incomplete;
-- direct mouse chase/aim camera while retail code retains camera ownership;
+- optional native 16:9 world presentation with authored 4:3 handling;
+- optional PGXP geometry with atomic fallback when provenance is incomplete;
+- optional direct mouse chase/aim camera with retail camera ownership;
 - keyboard and controller input through the retail PAD path;
 - 4x supersampling and OpenGL presentation;
 - memory-card persistence;

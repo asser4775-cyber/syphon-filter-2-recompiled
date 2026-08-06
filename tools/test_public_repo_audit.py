@@ -3,6 +3,8 @@ from __future__ import annotations
 import contextlib
 import io
 import pathlib
+import shutil
+import subprocess
 import tempfile
 import unittest
 import zipfile
@@ -48,6 +50,25 @@ class ReleaseAuditTests(unittest.TestCase):
     def test_rejects_zip_traversal(self) -> None:
         archive = self.make_archive({"../escape.txt": b"bad"})
         self.assertEqual(self.run_audit(archive), 1)
+
+    @unittest.skipUnless(shutil.which("pwsh"), "PowerShell is unavailable")
+    def test_setup_auto_detects_disc1_beside_disc2(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = pathlib.Path(temp)
+            setup = pathlib.Path(__file__).parents[1] / "release" / "SETUP.ps1"
+            shutil.copy2(setup, root / "SETUP.ps1")
+            disc1 = root / "Syphon Filter 2 (USA) (Disc 1).cue"
+            disc2 = root / "Syphon Filter 2 (USA) (Disc 2).cue"
+            disc1.write_text("FILE disc1.bin BINARY\n", encoding="ascii")
+            disc2.write_text("FILE disc2.bin BINARY\n", encoding="ascii")
+            result = subprocess.run(
+                ["pwsh", "-NoProfile", "-File", str(root / "SETUP.ps1"),
+                 "-ResolveCueOnly"],
+                check=True, text=True, stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            self.assertIn(str(disc1), result.stdout)
+            self.assertNotIn(str(disc2), result.stdout)
 
 
 if __name__ == "__main__":

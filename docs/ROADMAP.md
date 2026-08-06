@@ -45,5 +45,11 @@ exact clean-room output also passed the rapid-start Mission 1 ownership and
 movement route. Public playthrough coverage is now the release gate for the
 remaining items above.
 
+The accepted `v0.1.1-alpha` replaces the lab-style raw launcher command with
+PSXRecomp's shared graphical launcher, adds neighboring-CUE/toolchain
+auto-detection and a double-click `SETUP.bat`, and presents Mouse Look,
+Widescreen, and PGXP as independent default-off Mods. Its Controls page
+supports dual bindings and mouse buttons with same-launch persistence.
+
 Until those gates pass, the honest label is an experimental enhanced alpha,
 not a campaign-complete port or fully native recompilation.

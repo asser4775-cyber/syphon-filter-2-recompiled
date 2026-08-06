@@ -8,7 +8,7 @@ set(PSXRECOMP_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/psxrecomp" CACHE PATH
 
 # The owned-input setup kit regenerates the MIT-licensed OpenBIOS backend and
 # game code locally. Neither generated source set exists in Git or in CI.
-set(PSX_RECOMP_UI OFF CACHE BOOL "" FORCE)
+set(PSX_RECOMP_UI ON CACHE BOOL "" FORCE)
 set(PSXRECOMP_BIOS_STEMS "OpenBIOS" CACHE STRING "" FORCE)
 include("${PSXRECOMP_ROOT}/runtime/runtime.cmake")
 
@@ -30,6 +30,13 @@ psxrecomp_add_runtime_target(psx-runtime
     GAME_GENERATED_DISPATCH_C "${SF2_GENERATED_DISPATCH}"
     WINDOW_TITLE "Syphon Filter 2 Recompiled"
     EXE_NAME "SyphonFilter2Recompiled"
-    GAME_VERSION "0.1.0-alpha"
+    GAME_VERSION "0.1.1-alpha"
     DEFAULT_GAME_CONFIG_PATH "game.toml"
+    EXTRAS_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/sf2_mods.c"
 )
+
+add_custom_command(TARGET psx-runtime POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_CURRENT_SOURCE_DIR}/mods"
+        "$<TARGET_FILE_DIR:psx-runtime>/mods"
+    COMMENT "Installing Syphon Filter 2 built-in mod catalog")

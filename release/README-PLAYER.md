@@ -9,7 +9,8 @@ files. The runtime uses PSXRecomp's bundled MIT-licensed OpenBIOS backend; a
 Sony BIOS dump is not required.
 
 The setup script extracts and hash-checks `SCUS_944.51`, regenerates the game
-and OpenBIOS backends locally, builds the runtime, and writes `play.bat`.
+and OpenBIOS backends locally, builds the runtime and the real PSXRecomp
+graphical launcher, and writes `play.bat`.
 
 ## Prerequisites
 
@@ -22,23 +23,43 @@ and OpenBIOS backends locally, builds the runtime, and writes `play.bat`.
 pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake mingw-w64-x86_64-ninja mingw-w64-x86_64-python
 ```
 
-## Build and play
+## Easiest setup
 
-Open PowerShell in the extracted kit and run:
+Put the extracted kit, the Disc 1 `.cue`, and its `.bin` file(s) in the same
+folder. Disc 2 can be there too: setup specifically selects the CUE whose name
+contains `Disc 1`. Then double-click:
+
+```text
+SETUP.bat
+```
+
+The first build downloads pinned source dependencies and can take several
+minutes. When it succeeds, the PSXRecomp launcher opens automatically. Future
+runs only require `play.bat`; the launcher lets you choose the disc, video,
+controller, keyboard, and memory-card settings.
+
+## PowerShell setup
+
+If automatic Disc 1 selection is ambiguous, open PowerShell in the extracted
+kit and choose the CUE explicitly:
 
 ```powershell
 pwsh -File SETUP.ps1 `
   -CuePath "D:\PS1\Syphon Filter 2 (USA) (Disc 1).cue"
 ```
 
-Then run `play.bat`. Do not move individual files out of the extracted kit.
-Memory cards are stored under `out\release\saves`.
+The script auto-detects MinGW when `gcc` and `ninja` are on `PATH`, including a
+WinGet WinLibs installation. You can override it with
+`-Mingw "D:\Tools\mingw64"`. Do not move individual files out of the extracted
+kit. Memory cards are stored under `out\release\saves`.
 
 ## Current state
 
 - Verified through a connected Mission 1 route and human A/B playtesting.
-- Native 16:9, PGXP geometry assistance, keyboard/controller input, and direct
-  mouse chase/manual-aim camera are enabled.
+- Mouse Look, Widescreen (16:9), and PGXP are independent launcher Mods. All
+  three default off; enable only the enhancements you want before Launch.
+- The Controls page supports two keyboard/mouse bindings per retail PAD
+  control and applies saved edits to the same launch.
 - Retail gameplay, scripts, AI, collision, camera ownership, saves, and the
   authentic 20 Hz world update remain game-owned.
 - The resident executable is statically recompiled. Uncovered streamed

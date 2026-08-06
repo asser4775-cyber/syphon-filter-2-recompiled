@@ -22,7 +22,7 @@ FORBIDDEN_PARTS = {
     "release-stage", "local",
 }
 TEXT_SUFFIXES = {
-    "", ".md", ".txt", ".toml", ".ini", ".py", ".ps1", ".yml",
+    "", ".md", ".txt", ".toml", ".ini", ".py", ".ps1", ".bat", ".yml",
     ".yaml", ".cmake", ".json", ".gitignore", ".gitmodules",
 }
 PRIVATE_PATH_PATTERNS = (
@@ -38,12 +38,15 @@ AUDIT_IMPLEMENTATION_FILES = {
 ALLOWED_KIT_FILES = {
     "README.md",
     "SETUP.ps1",
+    "SETUP.bat",
     "extract_boot_exe.py",
     "game.toml",
     "CMakeLists.txt",
     "settings.toml",
     "keybinds.ini",
     "seeds/functions.txt",
+    "src/sf2_mods.c",
+    "mods/packages/sf2.enhancements/1.0.0/manifest.toml",
     "LICENSE-psxrecomp",
     "THIRD_PARTY_ATTRIBUTION.md",
     "psxrecomp-cli/psxrecomp.exe",

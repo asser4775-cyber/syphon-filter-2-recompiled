@@ -5,11 +5,11 @@ An experimental Windows static recompilation of **Syphon Filter 2 Disc 1
 [PSXRecomp](https://github.com/Alexbeav/psxrecomp).
 
 The release runs the original retail game logic as a native x64 program over
-a PlayStation hardware runtime. It adds native 16:9 presentation, PGXP-assisted
-geometry, 4x supersampling, and direct mouse camera control while keeping the
-retail gameplay, scripts, collision, saves, AI, and 20 Hz world update.
+a PlayStation hardware runtime. Its launcher offers optional native 16:9,
+PGXP-assisted geometry, and direct mouse camera control while keeping retail
+gameplay, scripts, collision, saves, AI, and the 20 Hz world update.
 
-This is a **recompilation, not a decompilation**, and `v0.1.0-alpha` is not a
+This is a **recompilation, not a decompilation**, and `v0.1.1-alpha` is not a
 finished PC port. The project does not contain or distribute the game disc, a
 Sony BIOS, extracted assets, generated game C, saves, or overlay captures.
 
@@ -20,16 +20,20 @@ game. It contains the compiler/runtime tools and this project's verified
 recipe, but no executable containing SF2 code.
 
 1. Download `syphon-filter-2-recompiled-kit-windows-x64.zip` from Releases.
-2. Extract it and provide your legally obtained SCUS-94451 Disc 1 `.cue`/`.bin`
-   dump. The kit uses the framework's MIT-licensed OpenBIOS.
-3. Run the included setup command:
+2. Put your legally obtained SCUS-94451 Disc 1 `.cue`/`.bin` files beside the
+   extracted kit files. Disc 2 may be present too.
+3. Double-click `SETUP.bat`. It auto-detects Disc 1 and the installed MinGW
+   toolchain, builds locally, and opens the PSXRecomp graphical launcher.
+
+If automatic selection is ambiguous, use PowerShell:
 
 ```powershell
 pwsh -File SETUP.ps1 `
   -CuePath "D:\PS1\Syphon Filter 2 (USA) (Disc 1).cue"
 ```
 
-4. Run the generated `play.bat`.
+Future runs use the generated `play.bat`. The launcher owns disc selection,
+video, controls, and memory-card settings.
 
 Extraction, hash verification, game/BIOS recompilation, and the native build
 all occur locally from your files. Never redistribute the setup output.
@@ -40,16 +44,16 @@ all occur locally from your files. Never redistribute the setup output.
 |---|---|
 | Boot, title, menus, FMV, Mission 1 | Deterministic routes and human play verified |
 | Retail gameplay and timing | Preserved |
-| Native 16:9 | Accepted in Mission 1; broader campaign coverage wanted |
-| PGXP | Accepted in Mission 1; deliberately falls back when provenance is incomplete |
-| Mouse camera | Chase and manual aim accepted; scripted cameras retain ownership |
-| Controller and keyboard | Available through the retail PAD path |
+| Native 16:9 mod | Accepted in Mission 1; default off; broader campaign coverage wanted |
+| PGXP mod | Accepted in Mission 1; default off; falls back when provenance is incomplete |
+| Mouse Look mod | Chase and manual aim accepted; default off; scripted cameras retain ownership |
+| Controller and keyboard | Dual keyboard/mouse binds and controllers use the retail PAD path |
 | Saves | Local memory cards; full campaign save/load coverage still wanted |
 | Disc 2 | Not yet qualified |
 | High refresh / 60 FPS | Architecturally parked; requires partial decompilation or an equivalent semantic world interface |
 | Native code coverage | Resident executable native; uncovered overlays use interpreter fallback |
 
-The alpha launcher deliberately keeps streamed overlays interpreter-owned.
+The alpha runtime deliberately keeps streamed overlays interpreter-owned.
 Automatic overlay compilation is disabled because warmed native shards have a
 separate promotion/qualification contract and are not part of this release.
 
@@ -65,7 +69,9 @@ gets smooth presentation from that higher-level semantic architecture.
 
 ## Controls
 
-The release includes a keyboard profile:
+The release includes an SF2 keyboard profile. The launcher's Controls page can
+assign two keys or mouse buttons to every retail PAD control, and edits apply
+immediately when Launch is pressed:
 
 - Move: `W/Q/S/E`
 - Camera: mouse
@@ -78,7 +84,7 @@ The release includes a keyboard profile:
 - Pause / Start: `Escape`
 
 Xbox-style controllers remain supported through the normal PSX controller
-path. Edit `keybinds.ini` for keyboard changes.
+path. Mouse1--Mouse5 can be mixed with keyboard or controller play.
 
 ## What to test
 
@@ -100,7 +106,7 @@ no retail bytes or private paths.
 ## Building from source
 
 The release kit is the supported build route. Its setup script pins framework
-commit `34dcc23dd51005bd5a3c1b399ea2189e9e9b4f7e`, extracts and verifies
+commit `452cc0c06ec9fb93f28c5848960f7564c76a1ea8`, extracts and verifies
 `SCUS_944.51` (SHA-256
 `75a360bf7465dfdec85c14f9ba93862aae2531b48d83fd8d82ba8c9fffa13d33`),
 regenerates the BIOS and game backends, and builds with MinGW/Ninja.

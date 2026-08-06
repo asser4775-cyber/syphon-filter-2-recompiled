@@ -17,6 +17,8 @@ if (Test-Path -LiteralPath $StageRoot) {
 }
 New-Item -ItemType Directory -Force `
     $Stage,(Join-Path $Stage "seeds"), `
+    (Join-Path $Stage "src"), `
+    (Join-Path $Stage "mods"), `
     (Join-Path $Stage "psxrecomp-cli\libexec"), `
     (Join-Path $Stage "psxrecomp-cli\share"), `
     (Split-Path $OutputPath) | Out-Null
@@ -28,6 +30,8 @@ foreach ($Name in @("game.toml", "CMakeLists.txt", "settings.toml", "keybinds.in
     Copy-Item -LiteralPath (Join-Path $Root $Name) -Destination $Stage
 }
 Copy-Item -LiteralPath (Join-Path $Root "seeds\functions.txt") -Destination (Join-Path $Stage "seeds")
+Copy-Item -LiteralPath (Join-Path $Root "src\sf2_mods.c") -Destination (Join-Path $Stage "src")
+Copy-Item -Path (Join-Path $Root "mods\*") -Destination (Join-Path $Stage "mods") -Recurse
 Copy-Item -LiteralPath (Join-Path $Framework "LICENSE") -Destination (Join-Path $Stage "LICENSE-psxrecomp")
 Copy-Item -LiteralPath (Join-Path $Framework "THIRD_PARTY_ATTRIBUTION.md") -Destination $Stage
 
@@ -36,6 +40,20 @@ foreach ($Name in @("psxrecomp-game.exe", "psxrecomp-bios.exe", "psxrecomp-toml.
     Copy-Item -LiteralPath (Join-Path $Cli "libexec\$Name") -Destination (Join-Path $Stage "psxrecomp-cli\libexec")
 }
 Copy-Item -LiteralPath (Join-Path $Cli "share\phase2_ghidra_seeds.json") -Destination (Join-Path $Stage "psxrecomp-cli\share")
+
+$SetupBat = Join-Path $Stage "SETUP.bat"
+@"
+@echo off
+cd /d "%~dp0"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0SETUP.ps1"
+if errorlevel 1 (
+  echo.
+  echo Setup failed. Review the message above.
+  pause
+  exit /b 1
+)
+call "%~dp0play.bat"
+"@ | Set-Content -LiteralPath $SetupBat -Encoding ascii
 
 if (Test-Path -LiteralPath $OutputPath) {
     Remove-Item -LiteralPath $OutputPath -Force

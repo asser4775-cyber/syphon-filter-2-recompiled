@@ -27,15 +27,15 @@ renderer = "opengl"
 supersampling = 4
 antialiasing = true
 texture_filtering = "nearest"
-aspect_ratio = "16:9"
-pgxp = true
+aspect_ratio = "4:3"
+pgxp = false
 
 [controller]
 default_mode = "digital"
-mouse_pad = true
+mouse_pad = false
 
 [controller.mouse_camera]
-enabled = true
+enabled = false
 facing_site = "0x80053464"
 facing_expected = "0x8EA30034"
 application_state_addr = "0x8011EE90"
@@ -57,6 +57,7 @@ aim_pitch_sensitivity = 1.0
 invert_y = false
 
 [widescreen]
+offer = false
 native_wide = true
 gte_game_mode = true
 nw_phase_backdrop = false

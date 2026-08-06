@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 env:
-  PSXRECOMP_REF: 34dcc23dd51005bd5a3c1b399ea2189e9e9b4f7e
+  PSXRECOMP_REF: 452cc0c06ec9fb93f28c5848960f7564c76a1ea8
 
 jobs:
   build-kit:
