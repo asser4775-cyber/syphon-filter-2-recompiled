@@ -1,0 +1,47 @@
+name: Audit and publish draft release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing draft release tag (for example v0.1.0-alpha)
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  audit-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Require an existing draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.release_tag }}
+        run: |
+          test "$(gh release view "$TAG" --json isDraft --jq .isDraft)" = true
+      - name: Download the locally built Windows asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.release_tag }}
+        run: |
+          mkdir dist
+          gh release download "$TAG" --dir dist --pattern 'syphon-filter-2-recompiled-*-windows-x64.zip'
+          test "$(find dist -maxdepth 1 -name '*.zip' -type f | wc -l)" -eq 1
+      - name: Audit proprietary-data boundary and archive layout
+        run: python tools/public_repo_audit.py --archive dist/*.zip
+      - name: Write and attach SHA-256
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.release_tag }}
+        run: |
+          cd dist
+          sha256sum *.zip > SHA256SUMS.txt
+          gh release upload "$TAG" SHA256SUMS.txt --clobber
+      - name: Publish the audited draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.release_tag }}
+        run: gh release edit "$TAG" --draft=false

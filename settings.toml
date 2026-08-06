@@ -1,0 +1,12 @@
+[video]
+renderer = "opengl"
+supersampling = 4
+window_width = 1920
+antialiasing = true
+texture_filtering = "nearest"
+fullscreen = 0
+aspect_ratio = "16:9"
+frame_interpolation = false
+
+[launcher]
+skip_launcher = true

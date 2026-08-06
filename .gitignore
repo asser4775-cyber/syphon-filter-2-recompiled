@@ -1,0 +1,45 @@
+/build/
+/build-*/
+/local/
+/input/
+/generated/
+/release-stage/
+/saves/
+/cache/
+/dist/
+*.zip
+
+# User-owned PlayStation inputs and runtime state.
+*.bin
+*.cue
+*.iso
+*.img
+*.chd
+*.ccd
+*.sub
+*.mcd
+*.mcr
+*.psxstate
+disc.cfg
+bios.cfg
+overlay_captures.json
+overlay_captures.json.d/
+settings.local.toml
+
+# Runtime diagnostics and captures.
+psx_*.txt
+psx_*.json
+*.jsonl
+*.bmp
+*.png
+*.wav
+*.mp4
+*.mkv
+
+# Tool/editor output.
+__pycache__/
+*.pyc
+.vs/
+.vscode/
+.DS_Store
+Thumbs.db
