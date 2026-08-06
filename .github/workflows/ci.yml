@@ -9,6 +9,9 @@ on:
 permissions:
   contents: read
 
+env:
+  PSXRECOMP_REF: 34dcc23dd51005bd5a3c1b399ea2189e9e9b4f7e
+
 jobs:
   public-source-policy:
     runs-on: ubuntu-latest
@@ -23,7 +26,12 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v6
+      - name: Check out pinned PSXRecomp framework
+        uses: actions/checkout@v6
         with:
+          repository: Alexbeav/psxrecomp
+          ref: ${{ env.PSXRECOMP_REF }}
+          path: psxrecomp-framework
           submodules: recursive
       - name: Install MinGW toolchain
         uses: msys2/setup-msys2@v2
@@ -37,12 +45,12 @@ jobs:
             mingw-w64-x86_64-python
       - name: Build pinned PSXRecomp CLI
         shell: msys2 {0}
-        run: python psxrecomp/tools/build_cli.py release
-      - name: Run registered recompiler tests
+        run: cd psxrecomp-framework && python tools/build_cli.py release
+      - name: Run registered framework tests
         shell: msys2 {0}
-        run: ctest --test-dir psxrecomp/recompiler/build-cli --output-on-failure
-      - name: Confirm CI did not generate retail code
+        run: ctest --test-dir psxrecomp-framework/recompiler/build-cli --output-on-failure
+      - name: Confirm no retail code was generated
         shell: pwsh
         run: |
-          if (Test-Path generated) { throw "CI must not create generated SF2 code" }
+          if (Test-Path generated) { throw "CI must not generate SF2 code" }
           if (Test-Path input) { throw "CI must not acquire retail SF2 inputs" }

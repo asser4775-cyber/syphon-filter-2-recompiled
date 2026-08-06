@@ -33,20 +33,24 @@ RELEASE_BINARY_MARKERS = (
 )
 AUDIT_IMPLEMENTATION_FILES = {
     "tools/public_repo_audit.py",
-    "tools/package_release.ps1",
     "tools/test_public_repo_audit.py",
 }
-ALLOWED_RELEASE_FILES = {
-    "SyphonFilter2Recompiled.exe",
+ALLOWED_KIT_FILES = {
     "README.md",
-    "LICENSE",
-    "RELEASE_NOTES.md",
-    "START_HERE.txt",
+    "SETUP.ps1",
+    "extract_boot_exe.py",
     "game.toml",
+    "CMakeLists.txt",
     "settings.toml",
     "keybinds.ini",
-    "bios/openbios.bin",
-    "bios/OpenBIOS.LICENSE",
+    "seeds/functions.txt",
+    "LICENSE-psxrecomp",
+    "THIRD_PARTY_ATTRIBUTION.md",
+    "psxrecomp-cli/psxrecomp.exe",
+    "psxrecomp-cli/libexec/psxrecomp-game.exe",
+    "psxrecomp-cli/libexec/psxrecomp-bios.exe",
+    "psxrecomp-cli/libexec/psxrecomp-toml.exe",
+    "psxrecomp-cli/share/phase2_ghidra_seeds.json",
 }
 MAX_RELEASE_BYTES = 128 * 1024 * 1024
 
@@ -82,7 +86,9 @@ def audit_root(root: pathlib.Path) -> int:
         rel = path.relative_to(root)
         if ".git" in rel.parts or "psxrecomp" in rel.parts:
             continue
-        if path.is_dir():
+        # A dirty pre-commit audit can contain index entries staged or marked
+        # for deletion. Missing paths contribute no public payload.
+        if not path.exists() or path.is_dir():
             continue
         if path.suffix.lower() in FORBIDDEN_SOURCE_SUFFIXES:
             errors.append(f"forbidden source file type: {rel.as_posix()}")
@@ -137,28 +143,25 @@ def audit_archive(archive: pathlib.Path) -> int:
                 continue
             # A single optional product-named staging directory is allowed.
             rel = "/".join(pure.parts[1:]) if has_wrapper else name
-            if rel not in ALLOWED_RELEASE_FILES:
-                errors.append(f"unexpected release file: {name}")
+            if rel not in ALLOWED_KIT_FILES:
+                errors.append(f"unexpected kit file: {name}")
             files.add(rel)
             total += info.file_size
             if info.file_size > MAX_RELEASE_BYTES:
                 errors.append(f"oversized release entry: {name}")
-            if rel != "bios/openbios.bin":
-                data = zf.read(info)
-                for hit in private_path_hits(data):
-                    errors.append(f"private path pattern {hit!r} in {name}")
-                if rel == "SyphonFilter2Recompiled.exe":
-                    folded = data.lower()
-                    for marker in RELEASE_BINARY_MARKERS:
-                        if marker in folded:
-                            errors.append(
-                                f"private build marker {marker!r} in {name}")
-            if rel == "bios/openbios.bin" and info.file_size != 524288:
-                errors.append("bundled OpenBIOS must be exactly 512 KiB")
+            data = zf.read(info)
+            for hit in private_path_hits(data):
+                errors.append(f"private path pattern {hit!r} in {name}")
+            if rel.endswith(".exe"):
+                folded = data.lower()
+                for marker in RELEASE_BINARY_MARKERS:
+                    if marker in folded:
+                        errors.append(
+                            f"private build marker {marker!r} in {name}")
 
-        missing = ALLOWED_RELEASE_FILES - files
+        missing = ALLOWED_KIT_FILES - files
         if missing:
-            errors.append("missing release files: " + ", ".join(sorted(missing)))
+            errors.append("missing kit files: " + ", ".join(sorted(missing)))
     if total > MAX_RELEASE_BYTES:
         errors.append(f"release expands to {total} bytes (limit {MAX_RELEASE_BYTES})")
     print(f"release archive: {archive} ({total} uncompressed bytes)")

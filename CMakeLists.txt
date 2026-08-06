@@ -6,8 +6,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(PSXRECOMP_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/psxrecomp" CACHE PATH
     "Path to the pinned PSXRecomp framework")
 
-# This first public alpha intentionally uses the proven minimal launcher path.
-# The executable asks for a user-owned SCUS-94451 disc on first launch.
+# The owned-input setup kit regenerates the MIT-licensed OpenBIOS backend and
+# game code locally. Neither generated source set exists in Git or in CI.
 set(PSX_RECOMP_UI OFF CACHE BOOL "" FORCE)
 set(PSXRECOMP_BIOS_STEMS "OpenBIOS" CACHE STRING "" FORCE)
 include("${PSXRECOMP_ROOT}/runtime/runtime.cmake")

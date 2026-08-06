@@ -15,8 +15,7 @@ class ReleaseAuditTests(unittest.TestCase):
         temp = tempfile.TemporaryDirectory()
         self.addCleanup(temp.cleanup)
         path = pathlib.Path(temp.name) / "release.zip"
-        files = {name: b"safe" for name in audit.ALLOWED_RELEASE_FILES}
-        files["bios/openbios.bin"] = bytes(524288)
+        files = {name: b"safe" for name in audit.ALLOWED_KIT_FILES}
         if extra:
             files.update(extra)
         with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as zf:
@@ -40,9 +39,9 @@ class ReleaseAuditTests(unittest.TestCase):
         archive = self.make_archive({"README.md": b"I:/Projects/private"})
         self.assertEqual(self.run_audit(archive), 1)
 
-    def test_rejects_build_path_in_executable(self) -> None:
+    def test_rejects_prebuilt_game_executable(self) -> None:
         archive = self.make_archive({
-            "SyphonFilter2Recompiled.exe": b"MZ...Z:/Emulators/private",
+            "SyphonFilter2Recompiled.exe": b"MZ...retail-derived game",
         })
         self.assertEqual(self.run_audit(archive), 1)
 

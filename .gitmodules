@@ -1,4 +1,0 @@
-[submodule "psxrecomp"]
-	path = psxrecomp
-	url = https://github.com/Alexbeav/psxrecomp.git
-	branch = experiment/sf2-high-refresh-pass1

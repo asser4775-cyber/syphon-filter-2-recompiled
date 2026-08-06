@@ -3,6 +3,8 @@
 /local/
 /input/
 /generated/
+/psxrecomp-src/
+/out/
 /release-stage/
 /saves/
 /cache/
@@ -22,6 +24,7 @@
 *.psxstate
 disc.cfg
 bios.cfg
+play.bat
 overlay_captures.json
 overlay_captures.json.d/
 settings.local.toml

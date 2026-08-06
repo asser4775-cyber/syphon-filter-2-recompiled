@@ -28,8 +28,11 @@ What is in this alpha:
 What is **not** in it: 60 FPS gameplay. I tried three high-refresh presentation
 candidates and rejected all three after visual testing—the counters looked
 good, but motion still read at one-third rate and the later candidates caused
-serious rendering artifacts. The release stays at the authentic world-update
-cadence instead of shipping a broken checkbox.
+serious rendering artifacts. The pure recomp boundary only sees flattened GPU
+packets after camera/object/bone state has been projected. Correct 60 FPS needs
+at least partial matching decompilation or an equivalent semantic world-state
+and render-at-will interface, like SF-PC-Port's architecture. That milestone is
+parked rather than advertised as an imminent checkbox.
 
 Validation so far includes repeated clean-process Mission 1 routes, executable
 hash checks, deterministic input/state comparisons, software/OpenGL checks,
@@ -44,11 +47,13 @@ them as finished features.
 
 [VIDEO LINK]
 
-[GITHUB RELEASE LINK]
+https://github.com/Alexbeav/syphon-filter-2-recompiled/releases/tag/v0.1.0-alpha
 
-The repository and release contain no game disc, Sony BIOS, extracted assets,
-generated game C, saves, or overlay captures. You need your own legally
-obtained Syphon Filter 2 Disc 1 (USA, SCUS-94451) image.
+The repository and release contain no game executable, game disc, Sony BIOS,
+extracted assets, generated game/BIOS C, saves, or overlay captures. The
+download is an owned-input setup kit: you provide your legally obtained Syphon
+Filter 2 Disc 1 (USA, SCUS-94451) image; it uses the bundled MIT-licensed
+OpenBIOS, verifies the game revision, recompiles, and builds locally.
 
 I would especially appreciate reports from full Disc 1 playthroughs. Please
 include the mission/checkpoint, GPU, and exact reproduction steps, and do not

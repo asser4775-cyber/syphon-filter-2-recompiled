@@ -15,17 +15,24 @@ Sony BIOS, extracted assets, generated game C, saves, or overlay captures.
 
 ## Download and play
 
-1. Download the Windows x64 ZIP from this repository's Releases page.
-2. Extract the whole ZIP and run `SyphonFilter2Recompiled.exe`.
-3. On first launch, select your legally obtained **Syphon Filter 2 Disc 1
-   (USA, SCUS-94451)** image. Choose the `.cue` when your dump has `.cue` plus
-   `.bin` tracks.
-4. The selected disc path is saved locally in `disc.cfg`. Memory cards are
-   created in `saves/`.
+The downloadable artifact is an **owned-input setup kit**, not a prebuilt
+game. It contains the compiler/runtime tools and this project's verified
+recipe, but no executable containing SF2 code.
 
-The package includes the MIT-licensed OpenBIOS from PCSX-Redux, so a Sony BIOS
-dump is not required. Supported input containers in this alpha are `.cue`,
-`.bin`, and `.iso`.
+1. Download `syphon-filter-2-recompiled-kit-windows-x64.zip` from Releases.
+2. Extract it and provide your legally obtained SCUS-94451 Disc 1 `.cue`/`.bin`
+   dump. The kit uses the framework's MIT-licensed OpenBIOS.
+3. Run the included setup command:
+
+```powershell
+pwsh -File SETUP.ps1 `
+  -CuePath "D:\PS1\Syphon Filter 2 (USA) (Disc 1).cue"
+```
+
+4. Run the generated `play.bat`.
+
+Extraction, hash verification, game/BIOS recompilation, and the native build
+all occur locally from your files. Never redistribute the setup output.
 
 ## Current status
 
@@ -39,14 +46,22 @@ dump is not required. Supported input containers in this alpha are `.cue`,
 | Controller and keyboard | Available through the retail PAD path |
 | Saves | Local memory cards; full campaign save/load coverage still wanted |
 | Disc 2 | Not yet qualified |
-| High refresh / 60 FPS | Not shipped; three visual candidates were rejected |
+| High refresh / 60 FPS | Architecturally parked; requires partial decompilation or an equivalent semantic world interface |
 | Native code coverage | Resident executable native; uncovered overlays use interpreter fallback |
+
+The alpha launcher deliberately keeps streamed overlays interpreter-owned.
+Automatic overlay compilation is disabled because warmed native shards have a
+separate promotion/qualification contract and are not part of this release.
 
 The rejected high-refresh experiments produced smooth host presentation
 counters but visibly remained one-third-rate and introduced severe rendering
-artifacts. They were removed rather than advertised. A future high-refresh
-attempt needs semantic world-state reconstruction from matching decompilation
-or an equivalent complete snapshot boundary.
+artifacts. They were removed rather than advertised. The pure recomp pipeline
+sees flattened GPU packets after retail code has already combined camera,
+object, bone, and projection state; it cannot reconstruct a coherent in-between
+world from that boundary. True 60 FPS is therefore unattainable within this
+project without at least partial matching decompilation—or an equivalent
+semantic camera/object/bone snapshot and render-at-will interface. SF-PC-Port
+gets smooth presentation from that higher-level semantic architecture.
 
 ## Controls
 
@@ -84,29 +99,16 @@ no retail bytes or private paths.
 
 ## Building from source
 
-The repository pins the framework as a submodule and contains only
-game-specific metadata and build glue. A local build requires your own exact
-SCUS-94451 executable (SHA-256
-`75a360bf7465dfdec85c14f9ba93862aae2531b48d83fd8d82ba8c9fffa13d33`)
-extracted to `input/SCUS_944.51` and a matching Disc 1 image at the relative
-path in `game.toml`.
+The release kit is the supported build route. Its setup script pins framework
+commit `34dcc23dd51005bd5a3c1b399ea2189e9e9b4f7e`, extracts and verifies
+`SCUS_944.51` (SHA-256
+`75a360bf7465dfdec85c14f9ba93862aae2531b48d83fd8d82ba8c9fffa13d33`),
+regenerates the BIOS and game backends, and builds with MinGW/Ninja.
 
-```powershell
-git clone --recurse-submodules https://github.com/Alexbeav/syphon-filter-2-recompiled.git
-cd syphon-filter-2-recompiled
-
-cmake -S psxrecomp/recompiler -B psxrecomp/recompiler/build -G Ninja -DCMAKE_BUILD_TYPE=Release
-cmake --build psxrecomp/recompiler/build --target psxrecomp-game
-psxrecomp/recompiler/build/psxrecomp-game.exe --config game.toml
-
-cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DPSX_DEBUG_TOOLS=OFF
-cmake --build build --target psx-runtime --parallel
-```
-
-`input/` and `generated/` are ignored and must never be committed or shared.
-The release itself is produced locally from those user-owned inputs, then a
-GitHub workflow audits the ZIP, writes its SHA-256, and publishes the draft.
-CI cannot and does not regenerate SF2 code.
+CI builds and tests only the redistributable compiler/tooling kit. It never
+receives retail inputs and cannot produce the game executable. Local `input/`,
+`generated/`, `psxrecomp-src/`, `out/`, and `play.bat` outputs are ignored and
+must never be committed or shared.
 
 ## Development and provenance
 

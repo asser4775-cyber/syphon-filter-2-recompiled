@@ -1,0 +1,66 @@
+# Syphon Filter 2 Recompiled — owned-input player kit
+
+This kit builds **Syphon Filter 2 Disc 1 (USA, SCUS-94451)** as a native
+Windows x64 program using PSXRecomp. It contains no game executable, generated
+game/BIOS code, game assets, Sony BIOS, saves, or overlay captures.
+
+You must provide your legally obtained Disc 1 `.cue` plus its `.bin` track
+files. The runtime uses PSXRecomp's bundled MIT-licensed OpenBIOS backend; a
+Sony BIOS dump is not required.
+
+The setup script extracts and hash-checks `SCUS_944.51`, regenerates the game
+and OpenBIOS backends locally, builds the runtime, and writes `play.bat`.
+
+## Prerequisites
+
+- Windows 10/11 x64 and approximately 6 GiB free space;
+- Git and Python 3 on `PATH`;
+- [MSYS2](https://www.msys2.org/) installed at `C:\msys64`;
+- from the MSYS2 MinGW64 shell:
+
+```sh
+pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake mingw-w64-x86_64-ninja mingw-w64-x86_64-python
+```
+
+## Build and play
+
+Open PowerShell in the extracted kit and run:
+
+```powershell
+pwsh -File SETUP.ps1 `
+  -CuePath "D:\PS1\Syphon Filter 2 (USA) (Disc 1).cue"
+```
+
+Then run `play.bat`. Do not move individual files out of the extracted kit.
+Memory cards are stored under `out\release\saves`.
+
+## Current state
+
+- Verified through a connected Mission 1 route and human A/B playtesting.
+- Native 16:9, PGXP geometry assistance, keyboard/controller input, and direct
+  mouse chase/manual-aim camera are enabled.
+- Retail gameplay, scripts, AI, collision, camera ownership, saves, and the
+  authentic 20 Hz world update remain game-owned.
+- The resident executable is statically recompiled. Uncovered streamed
+  overlays use the compatibility interpreter; native overlay promotion is
+  deliberately disabled in this alpha and native coverage is incomplete.
+- Complete Disc 1 and Disc 2 campaign qualification remains open.
+
+True 60 FPS gameplay is not attainable through this project's pure
+post-projection recompilation path. Three presentation experiments were
+rejected for ghosting, unstable/cracked geometry, or sparse/incoherent replay.
+A correct implementation requires at least partial matching decompilation—or
+an equivalent semantic camera/object/bone snapshot and render-at-will
+interface—like the architecture used by SF-PC-Port. High refresh is therefore
+parked, not an active promise for this project.
+
+## License and privacy
+
+PSXRecomp is PolyForm Noncommercial 1.0.0; see `LICENSE-psxrecomp` and
+`THIRD_PARTY_ATTRIBUTION.md`. This kit is for noncommercial research and
+private play with legally obtained inputs.
+
+Never redistribute the extracted `input/`, `generated/`, `psxrecomp-src/`,
+`out/`, `play.bat`, memory cards, `overlay_captures.json`, or any package made
+after running setup. Those local outputs may contain retail-derived code or
+private paths.
