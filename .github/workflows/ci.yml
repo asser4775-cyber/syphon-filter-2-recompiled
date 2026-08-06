@@ -46,6 +46,9 @@ jobs:
       - name: Build pinned PSXRecomp CLI
         shell: msys2 {0}
         run: cd psxrecomp-framework && python tools/build_cli.py release
+      - name: Build registered framework tests
+        shell: msys2 {0}
+        run: cmake --build psxrecomp-framework/recompiler/build-cli --parallel
       - name: Run registered framework tests
         shell: msys2 {0}
         run: ctest --test-dir psxrecomp-framework/recompiler/build-cli --output-on-failure
