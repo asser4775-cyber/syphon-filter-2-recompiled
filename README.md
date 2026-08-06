@@ -1,7 +1,7 @@
 # Syphon Filter 2 Recompiled
 
-An experimental Windows static recompilation of **Syphon Filter 2 Disc 1
-(USA, SCUS-94451)**, built with
+An experimental Windows static recompilation of the complete two-disc
+**Syphon Filter 2 (USA)** release, bootstrapped from SCUS-94451 and built with
 [PSXRecomp](https://github.com/Alexbeav/psxrecomp).
 
 The release runs the original retail game logic as a native x64 program over
@@ -42,14 +42,14 @@ all occur locally from your files. Never redistribute the setup output.
 
 | Area | Status |
 |---|---|
-| Boot, title, menus, FMV, Mission 1 | Deterministic routes and human play verified |
+| Complete game | Both discs, the connected campaign, and the disc transition have been played and verified |
 | Retail gameplay and timing | Preserved |
 | Native 16:9 mod | Accepted in Mission 1; default off; broader campaign coverage wanted |
 | PGXP mod | Accepted in Mission 1; default off; falls back when provenance is incomplete |
 | Mouse Look mod | Chase and manual aim accepted; default off; scripted cameras retain ownership |
 | Controller and keyboard | Dual keyboard/mouse binds and controllers use the retail PAD path |
 | Saves | Local memory cards; full campaign save/load coverage still wanted |
-| Disc 2 | Not yet qualified |
+| Disc handling | Disc 1 and Disc 2 gameplay verified |
 | High refresh / 60 FPS | Architecturally parked; requires partial decompilation or an equivalent semantic world interface |
 | Native code coverage | Resident executable native; uncovered overlays use interpreter fallback |
 
@@ -90,7 +90,7 @@ path. Mouse1--Mouse5 can be mixed with keyboard or controller play.
 
 Playthrough reports are especially useful for:
 
-- later Disc 1 missions, checkpoints, deaths, and restarts;
+- campaign regressions on either disc, including checkpoints, deaths, and restarts;
 - memory-card save/load across clean launches;
 - FMVs, letterboxing, fades, scopes, night vision, menus, and HUD placement;
 - scenes where wide geometry appears or disappears at screen edges;

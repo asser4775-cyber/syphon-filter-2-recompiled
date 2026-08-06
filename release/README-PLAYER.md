@@ -1,8 +1,9 @@
 # Syphon Filter 2 Recompiled — owned-input player kit
 
-This kit builds **Syphon Filter 2 Disc 1 (USA, SCUS-94451)** as a native
-Windows x64 program using PSXRecomp. It contains no game executable, generated
-game/BIOS code, game assets, Sony BIOS, saves, or overlay captures.
+This kit builds the complete two-disc **Syphon Filter 2 (USA)** campaign as a
+native Windows x64 program using PSXRecomp, bootstrapped from SCUS-94451. It
+contains no game executable, generated game/BIOS code, game assets, Sony BIOS,
+saves, or overlay captures.
 
 You must provide your legally obtained Disc 1 `.cue` plus its `.bin` track
 files. The runtime uses PSXRecomp's bundled MIT-licensed OpenBIOS backend; a
@@ -55,7 +56,8 @@ kit. Memory cards are stored under `out\release\saves`.
 
 ## Current state
 
-- Verified through a connected Mission 1 route and human A/B playtesting.
+- Both discs, the connected campaign, and the disc transition have been played
+  and verified; public regression reports remain welcome.
 - Mouse Look, Widescreen (16:9), and PGXP are independent launcher Mods. All
   three default off; enable only the enhancements you want before Launch.
 - The Controls page supports two keyboard/mouse bindings per retail PAD
@@ -65,7 +67,6 @@ kit. Memory cards are stored under `out\release\saves`.
 - The resident executable is statically recompiled. Uncovered streamed
   overlays use the compatibility interpreter; native overlay promotion is
   deliberately disabled in this alpha and native coverage is incomplete.
-- Complete Disc 1 and Disc 2 campaign qualification remains open.
 
 True 60 FPS gameplay is not attainable through this project's pure
 post-projection recompilation path. Three presentation experiments were

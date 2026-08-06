@@ -7,7 +7,7 @@ Syphon Filter 2 Recompiled — experimental Windows static recomp with native 16
 ## Body
 
 I have an early public playtest build of **Syphon Filter 2 Recompiled** for the
-USA Disc 1 release (SCUS-94451).
+complete two-disc USA release, bootstrapped from SCUS-94451.
 
 This is a **static recompilation, not a matching decompilation**. The resident
 PS1 executable is translated ahead of time and compiled into a native Windows
@@ -36,9 +36,10 @@ parked rather than advertised as an imminent checkbox.
 
 Validation so far includes repeated clean-process Mission 1 routes, executable
 hash checks, deterministic input/state comparisons, software/OpenGL checks,
-and human A/B testing. It is still `v0.1.0-alpha`: Disc 2 is not qualified and
-the complete Disc 1 campaign needs playthrough coverage, especially later
-FMVs, fullscreen effects, saves/checkpoints, and overlay-heavy areas.
+and human A/B testing. Both discs, the connected campaign, and the disc
+transition have been played and verified. It is still `v0.1.1-alpha`, and
+broader public regression coverage is welcome for FMVs, fullscreen effects,
+saves/checkpoints, and overlay-heavy areas.
 
 Development was AI-assisted and human-directed. Generated game code is never
 hand-edited; the project uses automated regressions and explicit human visual
@@ -47,14 +48,15 @@ them as finished features.
 
 [VIDEO LINK]
 
-https://github.com/Alexbeav/syphon-filter-2-recompiled/releases/tag/v0.1.0-alpha
+https://github.com/Alexbeav/syphon-filter-2-recompiled/releases/tag/v0.1.1-alpha
 
 The repository and release contain no game executable, game disc, Sony BIOS,
 extracted assets, generated game/BIOS C, saves, or overlay captures. The
 download is an owned-input setup kit: you provide your legally obtained Syphon
-Filter 2 Disc 1 (USA, SCUS-94451) image; it uses the bundled MIT-licensed
-OpenBIOS, verifies the game revision, recompiles, and builds locally.
+Filter 2 Disc 1 (USA, SCUS-94451) image as the build input and Disc 2 for the
+second half of the campaign; it uses the bundled MIT-licensed OpenBIOS,
+verifies the game revision, recompiles, and builds locally.
 
-I would especially appreciate reports from full Disc 1 playthroughs. Please
+I would especially appreciate reports from full two-disc playthroughs. Please
 include the mission/checkpoint, GPU, and exact reproduction steps, and do not
 upload copyrighted inputs or `overlay_captures.json`.

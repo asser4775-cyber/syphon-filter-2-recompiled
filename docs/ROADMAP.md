@@ -3,7 +3,8 @@
 ## Accepted enhanced baseline
 
 - SCUS-94451 resident executable identity verified.
-- Retail boot, frontend, FMV transition, Mission 1 ownership and gameplay.
+- Retail boot, frontend, both discs, the connected campaign, disc transition,
+  FMVs, player ownership, and gameplay verified.
 - Native 16:9 world presentation with the frozen 4:3 compatibility oracle.
 - PGXP-assisted geometry with conservative all-or-nothing fallback.
 - Keyboard/controller input through the retail PAD path.
@@ -28,22 +29,18 @@ alone cannot reopen the milestone.
 
 ## Remaining release deltas
 
-1. Run the complete connected Disc 1 campaign: checkpoints, damage/death,
-   restart, save/load across clean launches, ending, and return to frontend.
-2. Qualify Disc 2 and the disc-transition seam, even though the resident
-   executable identity is shared.
-3. Exercise later HUD, FMV, scope, night-vision, fade, matte, menu, and
+1. Exercise HUD, FMV, scope, night-vision, fade, matte, menu, and
    fullscreen-effect presentation in both 4:3 and 16:9.
-4. Attribute and warm streamed-overlay execution. The accepted Mission 1
-   route uses substantial interpreter fallback; playability is not 100%
+2. Attribute and warm streamed-overlay execution. The accepted routes use
+   substantial interpreter fallback; playability is not 100%
    native coverage.
-5. Run controller and keyboard/mouse together, long-session stability,
+3. Run controller and keyboard/mouse together, long-session stability,
    frame-pacing/audio, memory growth, clean exit, and release performance.
 
 The CI-owned-input kit and a clean-room `SETUP.ps1` build are complete. The
 exact clean-room output also passed the rapid-start Mission 1 ownership and
-movement route. Public playthrough coverage is now the release gate for the
-remaining items above.
+movement route. The complete connected two-disc game has been played; public
+coverage now serves as broader regression testing for the remaining items.
 
 The accepted `v0.1.1-alpha` replaces the lab-style raw launcher command with
 PSXRecomp's shared graphical launcher, adds neighboring-CUE/toolchain
@@ -51,5 +48,5 @@ auto-detection and a double-click `SETUP.bat`, and presents Mouse Look,
 Widescreen, and PGXP as independent default-off Mods. Its Controls page
 supports dual bindings and mouse buttons with same-launch persistence.
 
-Until those gates pass, the honest label is an experimental enhanced alpha,
-not a campaign-complete port or fully native recompilation.
+The honest label remains an experimental enhanced alpha rather than a fully
+native recompilation because streamed overlays still use interpreter fallback.
