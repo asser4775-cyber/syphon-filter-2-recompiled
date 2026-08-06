@@ -67,8 +67,11 @@ class ReleaseAuditTests(unittest.TestCase):
                 check=True, text=True, stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
             )
-            self.assertIn(str(disc1), result.stdout)
-            self.assertNotIn(str(disc2), result.stdout)
+            # Windows runners can expose the temporary directory through its
+            # 8.3 alias while PowerShell reports the corresponding long path.
+            # The selected filename is the behavior this regression protects.
+            self.assertIn(disc1.name, result.stdout)
+            self.assertNotIn(disc2.name, result.stdout)
 
 
 if __name__ == "__main__":
