@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/sf2-recompiled-banner.png" alt="Syphon Filter 2 Recompiled" width="640">
+</p>
+
 # Syphon Filter 2 Recompiled
 
 An experimental Windows static recompilation of the complete two-disc

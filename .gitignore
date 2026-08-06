@@ -36,6 +36,8 @@ psx_*.json
 *.jsonl
 *.bmp
 *.png
+!docs/assets/
+!docs/assets/sf2-recompiled-banner.png
 *.wav
 *.mp4
 *.mkv

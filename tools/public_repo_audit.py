@@ -17,6 +17,9 @@ FORBIDDEN_SOURCE_SUFFIXES = {
     ".exe", ".dll", ".mcd", ".mcr", ".psxstate", ".jsonl",
     ".bmp", ".png", ".wav", ".mp4", ".mkv",
 }
+ALLOWED_SOURCE_BINARY_FILES = {
+    "docs/assets/sf2-recompiled-banner.png",
+}
 FORBIDDEN_PARTS = {
     "input", "generated", "captures", "traces", "cache", "saves",
     "release-stage", "local",
@@ -93,7 +96,8 @@ def audit_root(root: pathlib.Path) -> int:
         # for deletion. Missing paths contribute no public payload.
         if not path.exists() or path.is_dir():
             continue
-        if path.suffix.lower() in FORBIDDEN_SOURCE_SUFFIXES:
+        if (path.suffix.lower() in FORBIDDEN_SOURCE_SUFFIXES
+                and rel.as_posix() not in ALLOWED_SOURCE_BINARY_FILES):
             errors.append(f"forbidden source file type: {rel.as_posix()}")
             continue
         if any(part.lower() in FORBIDDEN_PARTS for part in rel.parts):
