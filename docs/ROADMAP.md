@@ -42,7 +42,7 @@ exact clean-room output also passed the rapid-start Mission 1 ownership and
 movement route. The complete connected two-disc game has been played; public
 coverage now serves as broader regression testing for the remaining items.
 
-The accepted `v0.1.1-alpha` replaces the lab-style raw launcher command with
+The accepted `v0.1.2-alpha` replaces the lab-style raw launcher command with
 PSXRecomp's shared graphical launcher, adds neighboring-CUE/toolchain
 auto-detection and a double-click `SETUP.bat`, and presents Mouse Look,
 Widescreen, and PGXP as independent default-off Mods. Its Controls page

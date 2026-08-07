@@ -1,13 +1,20 @@
-# v0.1.1-alpha
+# v0.1.2-alpha
 
-Initial public playtest release for the complete two-disc Syphon Filter 2
-(USA) campaign, bootstrapped from SCUS-94451. Both discs and the connected
-campaign have been played and verified.
+Setup-reliability update for the complete two-disc Syphon Filter 2 (USA)
+campaign. Game behavior and the accepted optional Mods are unchanged from
+`v0.1.1-alpha`; this release replaces the public dependency bootstrap.
 
 This revision adds the shared PSXRecomp graphical launcher and a double-click
 setup path. `SETUP.bat` auto-detects a neighboring Disc 1 CUE even when Disc 2
 is also present, auto-detects PATH/MSYS2 MinGW toolchains, builds locally, and
 opens the launcher. Later runs use `play.bat`.
+
+The setup bootstrap uses no WinGet, Git, pip, or Visual Studio. Missing WinLibs
+and Python runtimes plus the pinned PSXRecomp, launcher, and SDL sources are
+downloaded directly into the kit, SHA-256 verified before extraction, and
+bounded by explicit download and extraction timeouts.
+Native runtime compilation now defaults to four parallel jobs, preventing
+memory pressure from turning a first build into an opaque stage-6 failure.
 
 Mouse Look, Widescreen (16:9), and PGXP are now independent Mods and all
 default to disabled. The Controls page supports two bindings per retail PAD

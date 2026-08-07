@@ -15,13 +15,16 @@ graphical launcher, and writes `play.bat`.
 
 ## Prerequisites
 
-- Windows 10/11 x64, an internet connection, and approximately 6 GiB free;
-- WinGet (`App Installer`), included with supported Windows installations.
+- Windows 10/11 x64, an internet connection, and approximately 6 GiB free.
 
-That is all for the normal double-click path. `SETUP.bat` finds existing tools
-or installs Git, Python, CMake, and a MinGW-w64 GCC/Ninja toolchain through
-WinGet. **Visual Studio is not required.** You do not need to reopen the
-terminal after installation.
+That is all for the normal double-click path. `SETUP.bat` finds compatible
+existing tools or downloads isolated, pinned, SHA-256-verified WinLibs and
+Python archives directly into the kit. PSXRecomp, the launcher, and SDL are
+also acquired as verified source archives. **WinGet, Git, pip, and Visual
+Studio are not required.** Nothing is installed system-wide.
+The large runtime compile uses at most four parallel jobs by default so it
+remains reliable on lower-memory systems. Advanced users can pass
+`-BuildJobs N` (1-64) to `SETUP.ps1` to change the limit.
 
 ## Easiest setup
 
@@ -33,10 +36,12 @@ contains `Disc 1`. Then double-click:
 SETUP.bat
 ```
 
-The first build downloads pinned source dependencies and can take several
-minutes. When it succeeds, the PSXRecomp launcher opens automatically. Future
-runs only require `play.bat`; the launcher lets you choose the disc, video,
-controller, keyboard, and memory-card settings.
+The first build downloads pinned dependencies and can take several minutes.
+Every archive is verified before extraction; extraction reports a heartbeat
+every ten seconds and stops rather than waiting forever. When setup succeeds,
+the PSXRecomp launcher opens automatically. Future runs only require
+`play.bat`; the launcher lets you choose the disc, video, controller, keyboard,
+and memory-card settings.
 
 A complete `setup.log` is written beside `SETUP.bat`. Review it and redact
 personal paths before attaching it to a public setup report.
@@ -47,16 +52,37 @@ If automatic Disc 1 selection is ambiguous, open PowerShell in the extracted
 kit and choose the CUE explicitly:
 
 ```powershell
-pwsh -File SETUP.ps1 `
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\SETUP.ps1 `
   -CuePath "D:\PS1\Syphon Filter 2 (USA) (Disc 1).cue"
 ```
 
 The script recognizes `python` or the Windows `py` launcher and checks standard
-installation locations as well as `PATH`. It similarly recognizes Git, CMake,
-MSYS2, and WinGet WinLibs layouts. You can override the compiler with
+installation locations as well as `PATH`. It similarly recognizes MSYS2,
+older WinGet WinLibs layouts, and its kit-local verified toolchain. Downloads
+are capped at 30 minutes; extraction stops with a useful error after 15
+minutes. You can override the compiler with
 `-Mingw "D:\Tools\mingw64"`, or use `-NoInstallDependencies` for a strictly
 manual/offline preflight. Do not move individual files out of the extracted
 kit. Memory cards are stored under `out\release\saves`.
+
+## Dependency-only check
+
+You can acquire and verify every public dependency before selecting a disc:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\SETUP.ps1 `
+  -DependenciesOnly -InstallDependencies
+```
+
+This checks or installs the kit-local compiler and Python runtime, then
+downloads and verifies the pinned PSXRecomp, launcher, and SDL source trees.
+It does not read a disc or generate game code. A successful rerun reuses the
+verified trees. A hash mismatch removes the downloaded archive before it can
+be extracted.
+
+If a download or extraction cannot finish, setup reports the owning dependency
+and timeout in `setup.log`. Check free space and security-software quarantine,
+then rerun the same command; completed verified dependencies are not repeated.
 
 ## Current state
 

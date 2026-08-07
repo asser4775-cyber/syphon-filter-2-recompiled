@@ -4,21 +4,44 @@ param(
     [switch]$ResolveCueOnly,
     [switch]$InstallDependencies,
     [switch]$NoInstallDependencies,
-    [switch]$PreflightOnly
+    [switch]$PreflightOnly,
+    [switch]$DependenciesOnly,
+    [ValidateRange(1, 64)]
+    [int]$BuildJobs = [Math]::Min(4, [Math]::Max(1, [Environment]::ProcessorCount))
 )
 
 $ErrorActionPreference = "Stop"
 $env:PYTHONUTF8 = "1"
 $Kit = $PSScriptRoot
 $Framework = Join-Path $Kit "psxrecomp-src"
-$FrameworkTag = "kit/sf2-20260807"
 $FrameworkRef = "452cc0c06ec9fb93f28c5848960f7564c76a1ea8"
+$FrameworkArchiveName = "psxrecomp-$FrameworkRef.zip"
+$FrameworkUrl = "https://github.com/Alexbeav/psxrecomp/archive/$FrameworkRef.zip"
+$FrameworkSha256 = "87ce5cff803f6e5bcf0a5efb3720bf98e4fbb718c5d55b903a2425de0cd8d1c2"
 $RecompUi = Join-Path $Kit "recomp-ui"
-$RecompUiTag = "kit/sf2-20260807"
 $RecompUiRef = "514c9e29f6d043867cea2fe91ca3cca24c69477e"
+$RecompUiArchiveName = "recomp-ui-$RecompUiRef.zip"
+$RecompUiUrl = "https://github.com/Alexbeav/recomp-ui/archive/$RecompUiRef.zip"
+$RecompUiSha256 = "1bb283d579c3553028fec28202258aae24a43b429bfb8aca6ad854702ba3826a"
 $InputDir = Join-Path $Kit "input"
 $GeneratedDir = Join-Path $Kit "generated"
 $BuildDir = Join-Path $Kit "out\release"
+$ToolchainDir = Join-Path $Kit "toolchain"
+$WinLibsVersion = "16.1.0-14.0.0-r4"
+$WinLibsArchiveName = "winlibs-x86_64-posix-seh-gcc-16.1.0-mingw-w64ucrt-14.0.0-r4.zip"
+$WinLibsUrl = "https://github.com/brechtsanders/winlibs_mingw/releases/download/16.1.0posix-14.0.0-ucrt-r4/$WinLibsArchiveName"
+$WinLibsSha256 = "c406a22f8cac82559a3a1d96b62ff603f666499fb5ff4784e87b4eb6fa37dede"
+$WinLibsRoot = Join-Path $ToolchainDir "winlibs-$WinLibsVersion"
+$PythonVersion = "3.13.14"
+$PythonArchiveName = "python-$PythonVersion-embed-amd64.zip"
+$PythonUrl = "https://www.python.org/ftp/python/$PythonVersion/$PythonArchiveName"
+$PythonSha256 = "90b4e5b9898b72d744650524bff92377c367f44bd5fbd09e3148656c080ad907"
+$PythonRoot = Join-Path $ToolchainDir "python-$PythonVersion"
+$SdlVersion = "3.4.10"
+$SdlArchiveName = "SDL3-$SdlVersion.tar.gz"
+$SdlUrl = "https://github.com/libsdl-org/SDL/releases/download/release-$SdlVersion/$SdlArchiveName"
+$SdlSha256 = "12b34280415ec8418c864408b93d008a20a6530687ee613d60bfbd20411f2785"
+$SdlRoot = Join-Path $ToolchainDir "SDL3-$SdlVersion"
 $SetupLog = Join-Path $Kit "setup.log"
 $TranscriptStarted = $false
 
@@ -26,6 +49,22 @@ function Refresh-ProcessPath {
     $MachinePath = [Environment]::GetEnvironmentVariable("Path", "Machine")
     $UserPath = [Environment]::GetEnvironmentVariable("Path", "User")
     $env:PATH = "$MachinePath;$UserPath"
+}
+
+function Get-Sha256 {
+    param([string]$Path)
+
+    $Stream = [IO.File]::OpenRead($Path)
+    try {
+        $Hasher = [Security.Cryptography.SHA256]::Create()
+        try {
+            return ([BitConverter]::ToString($Hasher.ComputeHash($Stream)) -replace "-", "").ToLowerInvariant()
+        } finally {
+            $Hasher.Dispose()
+        }
+    } finally {
+        $Stream.Dispose()
+    }
 }
 
 function Find-Application {
@@ -62,6 +101,10 @@ function Test-PythonCandidate {
 }
 
 function Find-Python {
+    $PinnedPython = Join-Path $PythonRoot "python.exe"
+    $Result = Test-PythonCandidate $PinnedPython
+    if ($Result) { return $Result }
+
     $PythonCommand = Get-Command python -CommandType Application -ErrorAction SilentlyContinue |
         Select-Object -First 1
     if ($PythonCommand -and $PythonCommand.Source -notmatch '(?i)\\WindowsApps\\python(?:3)?\.exe$') {
@@ -102,9 +145,10 @@ function Find-MingwToolchain {
         $Gcc = Join-Path $Root "bin\gcc.exe"
         $Gxx = Join-Path $Root "bin\g++.exe"
         $Ninja = Join-Path $Root "bin\ninja.exe"
+        $CMake = Join-Path $Root "bin\cmake.exe"
         if ((Test-Path -LiteralPath $Gcc) -and (Test-Path -LiteralPath $Gxx) -and
-            (Test-Path -LiteralPath $Ninja)) {
-            return [pscustomobject]@{ Root = $Root; Gcc = $Gcc; Gxx = $Gxx; Ninja = $Ninja }
+            (Test-Path -LiteralPath $Ninja) -and (Test-Path -LiteralPath $CMake)) {
+            return [pscustomobject]@{ Root = $Root; Gcc = $Gcc; Gxx = $Gxx; Ninja = $Ninja; CMake = $CMake }
         }
         return $null
     }
@@ -115,33 +159,37 @@ function Find-MingwToolchain {
         Select-Object -First 1
     $PathNinja = Get-Command ninja -CommandType Application -ErrorAction SilentlyContinue |
         Select-Object -First 1
+    $PathCMake = Get-Command cmake -CommandType Application -ErrorAction SilentlyContinue |
+        Select-Object -First 1
     if ($PathGcc -and $PathGxx -and $PathNinja -and
         (Split-Path $PathGcc.Source -Parent) -eq (Split-Path $PathGxx.Source -Parent) -and
-        (Split-Path $PathGcc.Source -Parent) -eq (Split-Path $PathNinja.Source -Parent)) {
+        (Split-Path $PathGcc.Source -Parent) -eq (Split-Path $PathNinja.Source -Parent) -and
+        $PathCMake) {
         return [pscustomobject]@{
             Root = Split-Path (Split-Path $PathGcc.Source -Parent) -Parent
             Gcc = $PathGcc.Source
             Gxx = $PathGxx.Source
             Ninja = $PathNinja.Source
+            CMake = $PathCMake.Source
         }
     }
 
-    if ($env:SF2_SETUP_DISABLE_STANDARD_DISCOVERY -eq "1") { return $null }
-    $Roots = @(
-        "C:\msys64\mingw64",
-        "C:\mingw64"
-    )
-    if ($env:LOCALAPPDATA) {
-        $Roots += @(Get-ChildItem -Path "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\BrechtSanders.WinLibs.*" -Directory -ErrorAction SilentlyContinue |
-            ForEach-Object { Join-Path $_.FullName "mingw64" })
+    $Roots = @((Join-Path $WinLibsRoot "mingw64"))
+    if ($env:SF2_SETUP_DISABLE_STANDARD_DISCOVERY -ne "1") {
+        $Roots += @("C:\msys64\mingw64", "C:\mingw64")
+        if ($env:LOCALAPPDATA) {
+            $Roots += @(Get-ChildItem -Path "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\BrechtSanders.WinLibs.*" -Directory -ErrorAction SilentlyContinue |
+                ForEach-Object { Join-Path $_.FullName "mingw64" })
+        }
     }
     foreach ($Root in $Roots) {
         $Gcc = Join-Path $Root "bin\gcc.exe"
         $Gxx = Join-Path $Root "bin\g++.exe"
         $Ninja = Join-Path $Root "bin\ninja.exe"
+        $CMake = Join-Path $Root "bin\cmake.exe"
         if ((Test-Path -LiteralPath $Gcc) -and (Test-Path -LiteralPath $Gxx) -and
-            (Test-Path -LiteralPath $Ninja)) {
-            return [pscustomobject]@{ Root = $Root; Gcc = $Gcc; Gxx = $Gxx; Ninja = $Ninja }
+            (Test-Path -LiteralPath $Ninja) -and (Test-Path -LiteralPath $CMake)) {
+            return [pscustomobject]@{ Root = $Root; Gcc = $Gcc; Gxx = $Gxx; Ninja = $Ninja; CMake = $CMake }
         }
     }
     return $null
@@ -149,21 +197,8 @@ function Find-MingwToolchain {
 
 function Resolve-SetupTools {
     param([string]$RequestedMingw)
-
-    $Git = Find-Application "git" @(
-        "$env:ProgramFiles\Git\cmd\git.exe",
-        "${env:ProgramFiles(x86)}\Git\cmd\git.exe",
-        "$env:LOCALAPPDATA\Programs\Git\cmd\git.exe"
-    )
-    $CMake = Find-Application "cmake" @(
-        "$env:ProgramFiles\CMake\bin\cmake.exe",
-        "${env:ProgramFiles(x86)}\CMake\bin\cmake.exe",
-        "$env:LOCALAPPDATA\Programs\CMake\bin\cmake.exe"
-    )
     return [pscustomobject]@{
-        Git = $Git
         Python = Find-Python
-        CMake = $CMake
         Mingw = Find-MingwToolchain $RequestedMingw
     }
 }
@@ -171,38 +206,160 @@ function Resolve-SetupTools {
 function Get-MissingToolNames {
     param($Tools)
     $Missing = @()
-    if (-not $Tools.Git) { $Missing += "Git" }
     if (-not $Tools.Python) { $Missing += "Python 3.10+" }
-    if (-not $Tools.CMake) { $Missing += "CMake" }
-    if (-not $Tools.Mingw) { $Missing += "MinGW-w64 GCC + Ninja" }
+    if (-not $Tools.Mingw) { $Missing += "MinGW-w64 GCC + CMake + Ninja" }
     return $Missing
 }
 
 function Install-MissingTools {
     param($Tools)
+    if (-not $Tools.Mingw) { Install-PinnedWinLibs }
+    if (-not $Tools.Python) { Install-PinnedPython }
+}
 
-    $Winget = Find-Application "winget"
-    if (-not $Winget) {
-        throw "Missing build tools and WinGet is unavailable. Install 'App Installer' from Microsoft, then run SETUP.bat again. Visual Studio is not required."
-    }
+function Install-VerifiedArtifact {
+    param(
+        [string]$Key,
+        [string]$Label,
+        [string]$Url,
+        [string]$ExpectedSha256,
+        [string]$ArchiveName,
+        [string]$Destination,
+        [string]$ArchiveRoot,
+        [string[]]$RequiredFiles
+    )
 
-    $Packages = @()
-    if (-not $Tools.Git) { $Packages += [pscustomobject]@{ Id = "Git.Git"; Label = "Git" } }
-    if (-not $Tools.Python) { $Packages += [pscustomobject]@{ Id = "Python.Python.3.13"; Label = "Python" } }
-    if (-not $Tools.CMake) { $Packages += [pscustomobject]@{ Id = "Kitware.CMake"; Label = "CMake" } }
-    if (-not $Tools.Mingw) { $Packages += [pscustomobject]@{ Id = "BrechtSanders.WinLibs.POSIX.UCRT"; Label = "MinGW-w64 GCC and Ninja" } }
-
-    foreach ($Package in $Packages) {
-        $Id = $Package.Id
-        $Label = $Package.Label
-        Write-Host "Installing $Label through WinGet ($Id)..." -ForegroundColor Cyan
-        & $Winget install --id $Id --exact --silent --disable-interactivity `
-            --accept-package-agreements --accept-source-agreements
-        if ($LASTEXITCODE -ne 0) {
-            throw "WinGet could not install $Label (exit $LASTEXITCODE). See setup.log, or install package '$Id' manually and rerun SETUP.bat."
+    $Receipt = Join-Path $Destination ".sf2-artifact-sha256"
+    $Complete = Test-Path -LiteralPath $Receipt -PathType Leaf
+    if ($Complete) {
+        $Complete = (Get-Content -LiteralPath $Receipt -Raw).Trim() -eq $ExpectedSha256
+        foreach ($Required in $RequiredFiles) {
+            if (-not (Test-Path -LiteralPath (Join-Path $Destination $Required) -PathType Leaf)) {
+                $Complete = $false
+            }
         }
     }
-    Refresh-ProcessPath
+    if ($Complete) {
+        Write-Host "$Label already verified inside this kit." -ForegroundColor Green
+        return
+    }
+
+    $Downloads = Join-Path $ToolchainDir "downloads"
+    $Archive = Join-Path $Downloads $ArchiveName
+    $PartialArchive = "$Archive.part"
+    $ExtractingRoot = "$Destination.extracting-$PID"
+
+    New-Item -ItemType Directory -Force $Downloads | Out-Null
+    if (Test-Path -LiteralPath $PartialArchive) {
+        Remove-Item -LiteralPath $PartialArchive -Force
+    }
+
+    $TestArchive = [Environment]::GetEnvironmentVariable("SF2_SETUP_TEST_${Key}_ARCHIVE")
+    $TestSha256 = [Environment]::GetEnvironmentVariable("SF2_SETUP_TEST_${Key}_SHA256")
+    Write-Host "Downloading pinned $Label directly (WinGet is not used)..." -ForegroundColor Cyan
+    if ($env:SF2_SETUP_TEST_MODE -eq "1" -and $TestArchive) {
+        Copy-Item -LiteralPath $TestArchive -Destination $PartialArchive
+        $ExpectedSha256 = $TestSha256
+    } else {
+        $Curl = Find-Application "curl.exe" @("$env:SystemRoot\System32\curl.exe")
+        if (-not $Curl) {
+            throw "Windows curl.exe is unavailable. See README.md for the manual dependency path."
+        }
+        & $Curl --fail --location --retry 3 --connect-timeout 30 --max-time 1800 `
+            --output $PartialArchive $Url
+        if ($LASTEXITCODE -ne 0) {
+            throw "$Label download failed (curl exit $LASTEXITCODE). Check the connection and rerun SETUP.bat."
+        }
+    }
+
+    $ActualSha256 = Get-Sha256 $PartialArchive
+    if ([string]::IsNullOrWhiteSpace($ExpectedSha256) -or
+        $ActualSha256 -ne $ExpectedSha256.ToLowerInvariant()) {
+        Remove-Item -LiteralPath $PartialArchive -Force
+        throw "$Label archive hash mismatch; the untrusted download was removed. Expected $ExpectedSha256, got $ActualSha256."
+    }
+    Move-Item -LiteralPath $PartialArchive -Destination $Archive -Force
+    Write-Host "Verified $Label archive SHA-256: $ActualSha256" -ForegroundColor Green
+
+    if (Test-Path -LiteralPath $ExtractingRoot) {
+        Remove-Item -LiteralPath $ExtractingRoot -Recurse -Force
+    }
+    New-Item -ItemType Directory -Force $ExtractingRoot | Out-Null
+    $Tar = Find-Application "tar.exe" @("$env:SystemRoot\System32\tar.exe")
+    if (-not $Tar) {
+        throw "Windows tar.exe is unavailable. See README.md for the manual dependency path."
+    }
+
+    Write-Host "Extracting verified $Label (progress is reported every 10 seconds)..." -ForegroundColor Cyan
+    $StartInfo = New-Object Diagnostics.ProcessStartInfo
+    $StartInfo.FileName = $Tar
+    $StartInfo.Arguments = "-xf `"$Archive`" -C `"$ExtractingRoot`""
+    $StartInfo.UseShellExecute = $false
+    $StartInfo.CreateNoWindow = $true
+    $Process = New-Object Diagnostics.Process
+    $Process.StartInfo = $StartInfo
+    if (-not $Process.Start()) { throw "Could not start Windows tar.exe for $Label extraction." }
+    $ElapsedSeconds = 0
+    while (-not $Process.WaitForExit(10000)) {
+        $ElapsedSeconds += 10
+        Write-Host "  Still extracting $Label... $ElapsedSeconds seconds elapsed"
+        if ($ElapsedSeconds -ge 900) {
+            Stop-Process -Id $Process.Id -Force
+            throw "$Label extraction exceeded 15 minutes and was stopped. Free disk space and antivirus scanning are common causes; see setup.log."
+        }
+    }
+    $Process.WaitForExit()
+    $TarExitCode = $Process.ExitCode
+    $Process.Dispose()
+    if ($TarExitCode -ne 0) {
+        throw "$Label extraction failed (tar exit $TarExitCode). See setup.log."
+    }
+
+    $ExtractedArtifact = if ([string]::IsNullOrWhiteSpace($ArchiveRoot)) {
+        $ExtractingRoot
+    } else {
+        Join-Path $ExtractingRoot $ArchiveRoot
+    }
+    foreach ($Required in $RequiredFiles) {
+        if (-not (Test-Path -LiteralPath (Join-Path $ExtractedArtifact $Required) -PathType Leaf)) {
+            throw "Verified $Label archive did not contain $Required."
+        }
+    }
+    if (Test-Path -LiteralPath $Destination) {
+        Remove-Item -LiteralPath $Destination -Recurse -Force
+    }
+    if ([string]::IsNullOrWhiteSpace($ArchiveRoot)) {
+        Move-Item -LiteralPath $ExtractingRoot -Destination $Destination
+    } else {
+        Move-Item -LiteralPath $ExtractedArtifact -Destination $Destination
+        Remove-Item -LiteralPath $ExtractingRoot -Recurse -Force
+    }
+    [IO.File]::WriteAllText((Join-Path $Destination ".sf2-artifact-sha256"), $ExpectedSha256, [Text.Encoding]::ASCII)
+    Remove-Item -LiteralPath $Archive -Force
+    Write-Host "$Label is ready inside this kit: $Destination" -ForegroundColor Green
+}
+
+function Install-PinnedWinLibs {
+    Install-VerifiedArtifact "WINLIBS" "WinLibs $WinLibsVersion" $WinLibsUrl $WinLibsSha256 `
+        $WinLibsArchiveName $WinLibsRoot "" `
+        @("mingw64\bin\gcc.exe", "mingw64\bin\g++.exe", "mingw64\bin\ninja.exe", "mingw64\bin\cmake.exe")
+}
+
+function Install-PinnedPython {
+    Install-VerifiedArtifact "PYTHON" "Python $PythonVersion embeddable runtime" $PythonUrl $PythonSha256 `
+        $PythonArchiveName $PythonRoot "" @("python.exe", "python313.dll", "python313.zip")
+}
+
+function Install-PinnedSources {
+    Install-VerifiedArtifact "FRAMEWORK" "PSXRecomp source $FrameworkRef" $FrameworkUrl $FrameworkSha256 `
+        $FrameworkArchiveName $Framework "psxrecomp-$FrameworkRef" `
+        @("runtime\runtime.cmake", "bios\OpenBIOS.toml", "LICENSE")
+    Install-VerifiedArtifact "RECOMP_UI" "PSXRecomp launcher source $RecompUiRef" $RecompUiUrl $RecompUiSha256 `
+        $RecompUiArchiveName $RecompUi "recomp-ui-$RecompUiRef" `
+        @("recomp_ui.cmake", "src\recomp_launcher.h", "README.md")
+    Install-VerifiedArtifact "SDL3" "SDL $SdlVersion source" $SdlUrl $SdlSha256 `
+        $SdlArchiveName $SdlRoot "SDL3-$SdlVersion" `
+        @("CMakeLists.txt", "include\SDL3\SDL.h", "LICENSE.txt")
 }
 
 function Invoke-Python {
@@ -219,28 +376,13 @@ function Assert-AsciiLauncherPath {
     }
 }
 
-function Checkout-PinnedTag {
-    param([string]$Repository, [string]$Tag, [string]$ExpectedCommit, [string]$Label)
-
-    $TagRef = "refs/tags/$Tag"
-    & $Tools.Git -C $Repository fetch origin "+${TagRef}:${TagRef}"
-    if ($LASTEXITCODE -ne 0) { throw "$Label tag fetch failed: $Tag" }
-    & $Tools.Git -C $Repository checkout --detach $TagRef
-    if ($LASTEXITCODE -ne 0) { throw "$Label checkout failed: $Tag" }
-    $ActualCommit = (& $Tools.Git -C $Repository rev-parse HEAD).Trim()
-    if ($LASTEXITCODE -ne 0 -or $ActualCommit -ne $ExpectedCommit) {
-        throw "$Label tag resolved to unexpected commit: expected $ExpectedCommit, got $ActualCommit"
-    }
-}
-
 function Show-ToolSummary {
     param($Tools)
     $PythonLabel = $Tools.Python.File
     if ($Tools.Python.Prefix.Count) { $PythonLabel += " " + ($Tools.Python.Prefix -join " ") }
     Write-Host "Build tools ready:" -ForegroundColor Green
-    Write-Host "  Git:     $($Tools.Git)"
     Write-Host "  Python:  $PythonLabel"
-    Write-Host "  CMake:   $($Tools.CMake)"
+    Write-Host "  CMake:   $($Tools.Mingw.CMake)"
     Write-Host "  GCC:     $($Tools.Mingw.Gcc)"
     Write-Host "  Ninja:   $($Tools.Mingw.Ninja)"
     Write-Host "  Visual Studio is not required."
@@ -265,14 +407,14 @@ trap {
     exit 1
 }
 
-if ($PreflightOnly) {
+if ($PreflightOnly -or $DependenciesOnly) {
     $Tools = Resolve-SetupTools $Mingw
     $Missing = @(Get-MissingToolNames $Tools)
     if ($Missing.Count -and -not $NoInstallDependencies) {
         if ($InstallDependencies) {
             Install-MissingTools $Tools
         } else {
-            $Reply = Read-Host "Missing $($Missing -join ', '). Install automatically with WinGet? [Y/n]"
+            $Reply = Read-Host "Missing $($Missing -join ', '). Download pinned verified tools into this kit? [Y/n]"
             if ([string]::IsNullOrWhiteSpace($Reply) -or $Reply -match '^(?i)y(?:es)?$') {
                 Install-MissingTools $Tools
             }
@@ -284,6 +426,10 @@ if ($PreflightOnly) {
         throw "Missing: $($Missing -join ', '). Run SETUP.bat for automatic installation, or install the listed tools and rerun."
     }
     Show-ToolSummary $Tools
+    if ($DependenciesOnly) {
+        Install-PinnedSources
+        Write-Host "Pinned dependency closure is ready." -ForegroundColor Green
+    }
     if ($TranscriptStarted) { Stop-Transcript | Out-Null }
     exit 0
 }
@@ -329,7 +475,7 @@ if ($Missing.Count) {
     if ($InstallDependencies) {
         Install-MissingTools $Tools
     } else {
-        $Reply = Read-Host "Missing $($Missing -join ', '). Install automatically with WinGet? [Y/n]"
+        $Reply = Read-Host "Missing $($Missing -join ', '). Download pinned verified tools into this kit? [Y/n]"
         if ([string]::IsNullOrWhiteSpace($Reply) -or $Reply -match '^(?i)y(?:es)?$') {
             Install-MissingTools $Tools
         } else {
@@ -344,40 +490,23 @@ if ($Missing.Count) {
 }
 Show-ToolSummary $Tools
 
-$env:PATH = "$(Split-Path $Tools.Mingw.Gcc -Parent);$(Split-Path $Tools.Git -Parent);$(Split-Path $Tools.CMake -Parent);$env:PATH"
-
-Write-Host "== 1/7 fetch pinned PSXRecomp source =="
-if (-not (Test-Path -LiteralPath (Join-Path $Framework ".git"))) {
-    & $Tools.Git clone --recurse-submodules https://github.com/Alexbeav/psxrecomp.git $Framework
-    if ($LASTEXITCODE -ne 0) { throw "framework clone failed" }
-}
-Checkout-PinnedTag $Framework $FrameworkTag $FrameworkRef "framework"
-& $Tools.Git -C $Framework submodule update --init --recursive
-if ($LASTEXITCODE -ne 0) { throw "framework submodule update failed" }
-
-Write-Host "== 2/7 fetch pinned PSXRecomp launcher =="
-if (-not (Test-Path -LiteralPath (Join-Path $RecompUi ".git"))) {
-    & $Tools.Git clone --recurse-submodules https://github.com/Alexbeav/recomp-ui.git $RecompUi
-    if ($LASTEXITCODE -ne 0) { throw "recomp-ui clone failed" }
-}
-Checkout-PinnedTag $RecompUi $RecompUiTag $RecompUiRef "recomp-ui"
-& $Tools.Git -C $RecompUi submodule update --init --recursive
-if ($LASTEXITCODE -ne 0) { throw "recomp-ui submodule update failed" }
-
-Write-Host "== 3/7 extract and verify SCUS_944.51 from your Disc 1 =="
-$PythonPackages = Join-Path $Kit "out\setup-python"
-if (-not (Test-Path -LiteralPath (Join-Path $PythonPackages "pycdlib"))) {
-    New-Item -ItemType Directory -Force $PythonPackages | Out-Null
-    Invoke-Python $Tools.Python @("-m", "pip", "install", "--quiet", "--disable-pip-version-check", "--target", $PythonPackages, "pycdlib==1.16.0")
-    if ($LASTEXITCODE -ne 0) {
-        Invoke-Python $Tools.Python @("-m", "ensurepip", "--upgrade")
-        if ($LASTEXITCODE -ne 0) { throw "Python pip bootstrap failed" }
-        Invoke-Python $Tools.Python @("-m", "pip", "install", "--quiet", "--disable-pip-version-check", "--target", $PythonPackages, "pycdlib==1.16.0")
-        if ($LASTEXITCODE -ne 0) { throw "local pycdlib installation failed" }
+$BuildPython = $Tools.Python.File
+if ($Tools.Python.Prefix.Count) {
+    $BuildPython = (& $Tools.Python.File @($Tools.Python.Prefix) -c "import sys; print(sys.executable)").Trim()
+    if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $BuildPython -PathType Leaf)) {
+        throw "Could not resolve the native Python executable behind $($Tools.Python.File)."
     }
 }
-$PreviousPythonPath = $env:PYTHONPATH
-$env:PYTHONPATH = if ($PreviousPythonPath) { "$PythonPackages;$PreviousPythonPath" } else { $PythonPackages }
+
+$env:PATH = "$(Split-Path $Tools.Mingw.Gcc -Parent);$(Split-Path $Tools.Python.File -Parent);$env:PATH"
+
+Write-Host "== 1/7 acquire pinned, verified PSXRecomp source =="
+Install-PinnedSources
+
+Write-Host "== 2/7 verify offline launcher and SDL source closure =="
+Write-Host "All build sources are hash-verified and ready inside this kit." -ForegroundColor Green
+
+Write-Host "== 3/7 extract and verify SCUS_944.51 from your Disc 1 =="
 New-Item -ItemType Directory -Force $InputDir | Out-Null
 Invoke-Python $Tools.Python @((Join-Path $Kit "extract_boot_exe.py"), $CuePath, $InputDir)
 if ($LASTEXITCODE -gt 1) { throw "boot executable extraction failed" }
@@ -407,17 +536,20 @@ try {
 }
 
 Write-Host "== 6/7 build the native runtime and PSXRecomp launcher =="
-& $Tools.CMake -S $Kit -B $BuildDir -G Ninja `
+Write-Host "Using $BuildJobs parallel build jobs (override with -BuildJobs 1..64)."
+& $Tools.Mingw.CMake -S $Kit -B $BuildDir -G Ninja `
     -DCMAKE_BUILD_TYPE=Release `
     "-DCMAKE_C_COMPILER=$($Tools.Mingw.Gcc -replace '\\','/')" `
     "-DCMAKE_CXX_COMPILER=$($Tools.Mingw.Gxx -replace '\\','/')" `
     "-DCMAKE_MAKE_PROGRAM=$($Tools.Mingw.Ninja -replace '\\','/')" `
     "-DPSXRECOMP_ROOT=$($Framework -replace '\\','/')" `
     "-DRECOMP_UI_ROOT=$($RecompUi -replace '\\','/')" `
+    "-DFETCHCONTENT_SOURCE_DIR_SDL3=$($SdlRoot -replace '\\','/')" `
+    "-DPSX_PYTHON=$($BuildPython -replace '\\','/')" `
     -DPSX_DEBUG_TOOLS=ON `
     -DPSX_RECOMP_UI=ON
 if ($LASTEXITCODE -ne 0) { throw "runtime configuration failed" }
-& $Tools.CMake --build $BuildDir --target psx-runtime --parallel
+& $Tools.Mingw.CMake --build $BuildDir --target psx-runtime --parallel $BuildJobs
 if ($LASTEXITCODE -ne 0) { throw "runtime build failed" }
 
 Write-Host "== 7/7 stage private inputs and write launcher =="

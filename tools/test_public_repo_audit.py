@@ -9,11 +9,21 @@ import subprocess
 import tempfile
 import unittest
 import zipfile
+import hashlib
+import importlib.util
 
 import public_repo_audit as audit
 
 
 class ReleaseAuditTests(unittest.TestCase):
+    def test_runtime_build_has_bounded_parallelism(self) -> None:
+        setup = (pathlib.Path(__file__).parents[1] / "release" / "SETUP.ps1").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("[ValidateRange(1, 64)]", setup)
+        self.assertIn("--parallel $BuildJobs", setup)
+        self.assertNotIn("--target psx-runtime --parallel\n", setup)
+
     def make_archive(self, extra: dict[str, bytes] | None = None) -> pathlib.Path:
         temp = tempfile.TemporaryDirectory()
         self.addCleanup(temp.cleanup)
@@ -59,6 +69,50 @@ class ReleaseAuditTests(unittest.TestCase):
     def test_rejects_non_ascii_batch_file(self) -> None:
         archive = self.make_archive({"SETUP.bat": "@echo off\r\necho Γ\r\n".encode("utf-8")})
         self.assertEqual(self.run_audit(archive), 1)
+
+    def test_standard_library_disc_extractor_reads_raw_iso9660(self) -> None:
+        extractor_path = pathlib.Path(__file__).parents[1] / "release" / "extract_boot_exe.py"
+        spec = importlib.util.spec_from_file_location("sf2_extract_boot_exe", extractor_path)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        extractor = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(extractor)
+
+        def record(name: bytes, lba: int, size: int, flags: int = 0) -> bytes:
+            length = 33 + len(name) + (1 if len(name) % 2 == 0 else 0)
+            data = bytearray(length)
+            data[0] = length
+            data[2:6] = lba.to_bytes(4, "little")
+            data[6:10] = lba.to_bytes(4, "big")
+            data[10:14] = size.to_bytes(4, "little")
+            data[14:18] = size.to_bytes(4, "big")
+            data[25] = flags
+            data[28:30] = (1).to_bytes(2, "little")
+            data[30:32] = (1).to_bytes(2, "big")
+            data[32] = len(name)
+            data[33:33 + len(name)] = name
+            return bytes(data)
+
+        with tempfile.TemporaryDirectory() as temp:
+            root = pathlib.Path(temp)
+            cue = root / "Disc 1.cue"
+            bin_path = root / "Disc 1.bin"
+            payload = bytes((index % 251 for index in range(3000)))
+            sectors = [bytearray(2352) for _ in range(23)]
+            pvd = bytearray(2048)
+            pvd[:7] = b"\x01CD001\x01"
+            root_record = record(b"\x00", 20, 2048, flags=2)
+            pvd[156:156 + len(root_record)] = root_record
+            sectors[16][24:24 + 2048] = pvd
+            directory = bytearray(2048)
+            entries = root_record + record(b"SCUS_944.51;1", 21, len(payload))
+            directory[:len(entries)] = entries
+            sectors[20][24:24 + 2048] = directory
+            sectors[21][24:24 + 2048] = payload[:2048]
+            sectors[22][24:24 + len(payload[2048:])] = payload[2048:]
+            bin_path.write_bytes(b"".join(sectors))
+            cue.write_text('FILE "Disc 1.bin" BINARY\n', encoding="ascii")
+            self.assertEqual(extractor.extract_iso_file(cue, "SCUS_944.51;1"), payload)
 
     @unittest.skipUnless(shutil.which("pwsh"), "PowerShell is unavailable")
     def test_setup_auto_detects_disc1_beside_disc2(self) -> None:
@@ -134,6 +188,136 @@ class ReleaseAuditTests(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("Missing: Python 3.10+", result.stdout)
             self.assertIn("Run SETUP.bat for automatic installation", result.stdout)
+
+    @unittest.skipUnless(os.name == "nt" and shutil.which("powershell"),
+                         "Windows PowerShell 5.1 is unavailable")
+    def test_setup_installs_verified_winlibs_without_winget(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = pathlib.Path(temp)
+            setup = pathlib.Path(__file__).parents[1] / "release" / "SETUP.ps1"
+            shutil.copy2(setup, root / "SETUP.ps1")
+            fake_bin = root / "existing-tools"
+            fake_bin.mkdir()
+            for name in ("git", "cmake", "py"):
+                (fake_bin / f"{name}.cmd").write_text(
+                    "@echo off\r\nexit /b 0\r\n", encoding="ascii"
+                )
+
+            archive = root / "fixture-winlibs.zip"
+            with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as zf:
+                for name in ("gcc.exe", "g++.exe", "ninja.exe", "cmake.exe"):
+                    zf.writestr(f"mingw64/bin/{name}", b"fixture")
+            digest = hashlib.sha256(archive.read_bytes()).hexdigest()
+
+            env = os.environ.copy()
+            env["PATH"] = str(fake_bin) + os.pathsep + os.environ["SystemRoot"] + "\\System32"
+            env["SF2_SETUP_DISABLE_STANDARD_DISCOVERY"] = "1"
+            env["SF2_SETUP_TEST_MODE"] = "1"
+            env["SF2_SETUP_TEST_WINLIBS_ARCHIVE"] = str(archive)
+            env["SF2_SETUP_TEST_WINLIBS_SHA256"] = digest
+            result = subprocess.run(
+                [shutil.which("powershell"), "-NoProfile", "-ExecutionPolicy", "Bypass",
+                 "-File", str(root / "SETUP.ps1"),
+                 "-PreflightOnly", "-InstallDependencies"],
+                check=False, text=True, encoding="utf-8", errors="replace",
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env,
+            )
+            self.assertEqual(result.returncode, 0, result.stdout)
+            self.assertIn("WinGet is not used", result.stdout)
+            self.assertIn("Verified WinLibs", result.stdout)
+            self.assertIn("is ready inside this kit", result.stdout)
+            self.assertTrue((root / "toolchain" / "winlibs-16.1.0-14.0.0-r4" /
+                             "mingw64" / "bin" / "gcc.exe").is_file())
+
+    @unittest.skipUnless(os.name == "nt" and shutil.which("powershell"),
+                         "Windows PowerShell 5.1 is unavailable")
+    def test_setup_rejects_unverified_winlibs_before_extraction(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = pathlib.Path(temp)
+            setup = pathlib.Path(__file__).parents[1] / "release" / "SETUP.ps1"
+            shutil.copy2(setup, root / "SETUP.ps1")
+            fake_bin = root / "existing-tools"
+            fake_bin.mkdir()
+            for name in ("git", "cmake", "py"):
+                (fake_bin / f"{name}.cmd").write_text(
+                    "@echo off\r\nexit /b 0\r\n", encoding="ascii"
+                )
+            archive = root / "untrusted.zip"
+            with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as zf:
+                zf.writestr("mingw64/bin/gcc.exe", b"untrusted")
+
+            env = os.environ.copy()
+            env["PATH"] = str(fake_bin) + os.pathsep + os.environ["SystemRoot"] + "\\System32"
+            env["SF2_SETUP_DISABLE_STANDARD_DISCOVERY"] = "1"
+            env["SF2_SETUP_TEST_MODE"] = "1"
+            env["SF2_SETUP_TEST_WINLIBS_ARCHIVE"] = str(archive)
+            env["SF2_SETUP_TEST_WINLIBS_SHA256"] = "0" * 64
+            result = subprocess.run(
+                [shutil.which("powershell"), "-NoProfile", "-ExecutionPolicy", "Bypass",
+                 "-File", str(root / "SETUP.ps1"),
+                 "-PreflightOnly", "-InstallDependencies"],
+                check=False, text=True, encoding="utf-8", errors="replace",
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("archive hash mismatch", result.stdout)
+            self.assertIn("untrusted download was removed", result.stdout)
+            self.assertFalse((root / "toolchain" / "winlibs-16.1.0-14.0.0-r4").exists())
+
+    @unittest.skipUnless(os.name == "nt" and shutil.which("powershell"),
+                         "Windows PowerShell 5.1 is unavailable")
+    def test_setup_acquires_verified_source_closure_without_git(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = pathlib.Path(temp)
+            setup = pathlib.Path(__file__).parents[1] / "release" / "SETUP.ps1"
+            shutil.copy2(setup, root / "SETUP.ps1")
+            fake_bin = root / "existing-tools"
+            fake_bin.mkdir()
+            for name in ("cmake", "gcc", "g++", "ninja", "py"):
+                (fake_bin / f"{name}.cmd").write_text(
+                    "@echo off\r\nexit /b 0\r\n", encoding="ascii"
+                )
+
+            fixtures = {
+                "FRAMEWORK": (
+                    "psxrecomp-452cc0c06ec9fb93f28c5848960f7564c76a1ea8",
+                    ("runtime/runtime.cmake", "bios/OpenBIOS.toml", "LICENSE"),
+                ),
+                "RECOMP_UI": (
+                    "recomp-ui-514c9e29f6d043867cea2fe91ca3cca24c69477e",
+                    ("recomp_ui.cmake", "src/recomp_launcher.h", "README.md"),
+                ),
+                "SDL3": (
+                    "SDL3-3.4.10",
+                    ("CMakeLists.txt", "include/SDL3/SDL.h", "LICENSE.txt"),
+                ),
+            }
+            env = os.environ.copy()
+            env["PATH"] = str(fake_bin) + os.pathsep + os.environ["SystemRoot"] + "\\System32"
+            env["SF2_SETUP_DISABLE_STANDARD_DISCOVERY"] = "1"
+            env["SF2_SETUP_TEST_MODE"] = "1"
+            for key, (prefix, names) in fixtures.items():
+                archive = root / f"{key.lower()}.zip"
+                with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as zf:
+                    for name in names:
+                        zf.writestr(f"{prefix}/{name}", b"fixture")
+                env[f"SF2_SETUP_TEST_{key}_ARCHIVE"] = str(archive)
+                env[f"SF2_SETUP_TEST_{key}_SHA256"] = hashlib.sha256(archive.read_bytes()).hexdigest()
+
+            result = subprocess.run(
+                [shutil.which("powershell"), "-NoProfile", "-ExecutionPolicy", "Bypass",
+                 "-File", str(root / "SETUP.ps1"), "-DependenciesOnly",
+                 "-NoInstallDependencies"],
+                check=False, text=True, encoding="utf-8", errors="replace",
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env,
+            )
+            self.assertEqual(result.returncode, 0, result.stdout)
+            self.assertIn("Pinned dependency closure is ready", result.stdout)
+            self.assertNotIn("git clone", result.stdout.lower())
+            self.assertTrue((root / "psxrecomp-src" / ".sf2-artifact-sha256").is_file())
+            self.assertTrue((root / "recomp-ui" / ".sf2-artifact-sha256").is_file())
+            self.assertTrue((root / "toolchain" / "SDL3-3.4.10" /
+                             ".sf2-artifact-sha256").is_file())
 
     @unittest.skipUnless(os.name == "nt" and shutil.which("pwsh"),
                          "Windows PowerShell is unavailable")

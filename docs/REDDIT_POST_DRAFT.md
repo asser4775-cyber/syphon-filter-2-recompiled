@@ -37,7 +37,7 @@ parked rather than advertised as an imminent checkbox.
 Validation so far includes repeated clean-process Mission 1 routes, executable
 hash checks, deterministic input/state comparisons, software/OpenGL checks,
 and human A/B testing. Both discs, the connected campaign, and the disc
-transition have been played and verified. It is still `v0.1.1-alpha`, and
+transition have been played and verified. It is still `v0.1.2-alpha`, and
 broader public regression coverage is welcome for FMVs, fullscreen effects,
 saves/checkpoints, and overlay-heavy areas.
 
@@ -48,7 +48,7 @@ them as finished features.
 
 [VIDEO LINK]
 
-https://github.com/Alexbeav/syphon-filter-2-recompiled/releases/tag/v0.1.1-alpha
+https://github.com/Alexbeav/syphon-filter-2-recompiled/releases/tag/v0.1.2-alpha
 
 The repository and release contain no game executable, game disc, Sony BIOS,
 extracted assets, generated game/BIOS C, saves, or overlay captures. The

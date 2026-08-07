@@ -13,7 +13,7 @@ a PlayStation hardware runtime. Its launcher offers optional native 16:9,
 PGXP-assisted geometry, and direct mouse camera control while keeping retail
 gameplay, scripts, collision, saves, AI, and the 20 Hz world update.
 
-This is a **recompilation, not a decompilation**, and `v0.1.1-alpha` is not a
+This is a **recompilation, not a decompilation**, and `v0.1.2-alpha` is not a
 finished PC port. The project does not contain or distribute the game disc, a
 Sony BIOS, extracted assets, generated game C, saves, or overlay captures.
 
@@ -26,14 +26,18 @@ recipe, but no executable containing SF2 code.
 1. Download `syphon-filter-2-recompiled-kit-windows-x64.zip` from Releases.
 2. Put your legally obtained SCUS-94451 Disc 1 `.cue`/`.bin` files beside the
    extracted kit files. Disc 2 may be present too.
-3. Double-click `SETUP.bat`. It auto-detects Disc 1, installs any missing
-   Git/Python/CMake/MinGW tools through WinGet, builds locally, and opens the
-   PSXRecomp graphical launcher. **Visual Studio is not required.**
+3. Double-click `SETUP.bat`. It auto-detects Disc 1, downloads pinned and
+   SHA-256-verified WinLibs, Python, PSXRecomp, launcher, and SDL source
+   archives directly, builds locally, and opens the graphical launcher.
+   **WinGet, Git, pip, and Visual Studio are not required.**
+   Runtime compilation uses at most four parallel jobs by default to avoid
+   exhausting memory on capture PCs. Advanced users can pass `-BuildJobs N`
+   (1-64) to tune that limit.
 
 If automatic selection is ambiguous, use PowerShell:
 
 ```powershell
-pwsh -File SETUP.ps1 `
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\SETUP.ps1 `
   -CuePath "D:\PS1\Syphon Filter 2 (USA) (Disc 1).cue"
 ```
 
@@ -42,9 +46,19 @@ video, controls, and memory-card settings.
 
 Setup writes `setup.log` beside itself. If setup fails, review it, redact any
 personal paths, and attach it to an issue instead of reconstructing terminal
-messages from memory. Python's `py` launcher and standard installations are
-detected even when a newly installed tool has not appeared in the current
-terminal's `PATH` yet.
+messages from memory. Existing compatible Python and MinGW installations are
+reused when detected; otherwise isolated verified copies are placed inside
+the extracted kit.
+
+To acquire and verify every public dependency before adding a disc, run:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\SETUP.ps1 `
+  -DependenciesOnly -InstallDependencies
+```
+
+Rerunning setup reuses a dependency only when its receipt and required files
+still match. Hash failures remove the untrusted download before extraction.
 
 Extraction, hash verification, game/BIOS recompilation, and the native build
 all occur locally from your files. Never redistribute the setup output.

@@ -45,8 +45,9 @@ $SetupBat = Join-Path $Stage "SETUP.bat"
 $SetupBatText = @"
 @echo off
 cd /d "%~dp0"
-echo Syphon Filter 2 Recompiled will use WinGet to install any missing build tools.
-echo Visual Studio is not required. A setup.log file will be written for support; review it before sharing.
+echo Syphon Filter 2 Recompiled will acquire any missing build tools.
+echo All dependency archives are pinned, downloaded directly, and SHA-256 verified before extraction.
+echo WinGet, Git, pip, and Visual Studio are not required. A setup.log file will be written for support; review it before sharing.
 echo.
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0SETUP.ps1" -InstallDependencies
 if errorlevel 1 (
