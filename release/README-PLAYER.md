@@ -15,14 +15,13 @@ graphical launcher, and writes `play.bat`.
 
 ## Prerequisites
 
-- Windows 10/11 x64 and approximately 6 GiB free space;
-- Git and Python 3 on `PATH`;
-- [MSYS2](https://www.msys2.org/) installed at `C:\msys64`;
-- from the MSYS2 MinGW64 shell:
+- Windows 10/11 x64, an internet connection, and approximately 6 GiB free;
+- WinGet (`App Installer`), included with supported Windows installations.
 
-```sh
-pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake mingw-w64-x86_64-ninja mingw-w64-x86_64-python
-```
+That is all for the normal double-click path. `SETUP.bat` finds existing tools
+or installs Git, Python, CMake, and a MinGW-w64 GCC/Ninja toolchain through
+WinGet. **Visual Studio is not required.** You do not need to reopen the
+terminal after installation.
 
 ## Easiest setup
 
@@ -39,6 +38,9 @@ minutes. When it succeeds, the PSXRecomp launcher opens automatically. Future
 runs only require `play.bat`; the launcher lets you choose the disc, video,
 controller, keyboard, and memory-card settings.
 
+A complete `setup.log` is written beside `SETUP.bat`. Review it and redact
+personal paths before attaching it to a public setup report.
+
 ## PowerShell setup
 
 If automatic Disc 1 selection is ambiguous, open PowerShell in the extracted
@@ -49,9 +51,11 @@ pwsh -File SETUP.ps1 `
   -CuePath "D:\PS1\Syphon Filter 2 (USA) (Disc 1).cue"
 ```
 
-The script auto-detects MinGW when `gcc` and `ninja` are on `PATH`, including a
-WinGet WinLibs installation. You can override it with
-`-Mingw "D:\Tools\mingw64"`. Do not move individual files out of the extracted
+The script recognizes `python` or the Windows `py` launcher and checks standard
+installation locations as well as `PATH`. It similarly recognizes Git, CMake,
+MSYS2, and WinGet WinLibs layouts. You can override the compiler with
+`-Mingw "D:\Tools\mingw64"`, or use `-NoInstallDependencies` for a strictly
+manual/offline preflight. Do not move individual files out of the extracted
 kit. Memory cards are stored under `out\release\saves`.
 
 ## Current state
@@ -86,3 +90,15 @@ Never redistribute the extracted `input/`, `generated/`, `psxrecomp-src/`,
 `out/`, `play.bat`, memory cards, `overlay_captures.json`, or any package made
 after running setup. Those local outputs may contain retail-derived code or
 private paths.
+
+## About this project
+
+These ports are developed by a hobbyist (a DevSecOps engineer, not a game
+programmer) with substantial AI assistance. What keeps that honest: every
+change is validated before it ships - boot gates, hardware-oracle A/B
+comparisons (Beetle/DuckStation), deterministic replay probes, and a shared
+findings registry that documents failures as carefully as successes. AI
+writes most of the code; the evidence discipline decides what survives.
+Bug reports welcome - expect them to be investigated the same way.
+
+tl;dr AI writes the code, but I always test it myself before pushing

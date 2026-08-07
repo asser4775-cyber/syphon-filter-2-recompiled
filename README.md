@@ -26,8 +26,9 @@ recipe, but no executable containing SF2 code.
 1. Download `syphon-filter-2-recompiled-kit-windows-x64.zip` from Releases.
 2. Put your legally obtained SCUS-94451 Disc 1 `.cue`/`.bin` files beside the
    extracted kit files. Disc 2 may be present too.
-3. Double-click `SETUP.bat`. It auto-detects Disc 1 and the installed MinGW
-   toolchain, builds locally, and opens the PSXRecomp graphical launcher.
+3. Double-click `SETUP.bat`. It auto-detects Disc 1, installs any missing
+   Git/Python/CMake/MinGW tools through WinGet, builds locally, and opens the
+   PSXRecomp graphical launcher. **Visual Studio is not required.**
 
 If automatic selection is ambiguous, use PowerShell:
 
@@ -38,6 +39,12 @@ pwsh -File SETUP.ps1 `
 
 Future runs use the generated `play.bat`. The launcher owns disc selection,
 video, controls, and memory-card settings.
+
+Setup writes `setup.log` beside itself. If setup fails, review it, redact any
+personal paths, and attach it to an issue instead of reconstructing terminal
+messages from memory. Python's `py` launcher and standard installations are
+detected even when a newly installed tool has not appeared in the current
+terminal's `PATH` yet.
 
 Extraction, hash verification, game/BIOS recompilation, and the native build
 all occur locally from your files. Never redistribute the setup output.

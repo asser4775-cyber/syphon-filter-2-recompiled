@@ -42,10 +42,13 @@ foreach ($Name in @("psxrecomp-game.exe", "psxrecomp-bios.exe", "psxrecomp-toml.
 Copy-Item -LiteralPath (Join-Path $Cli "share\phase2_ghidra_seeds.json") -Destination (Join-Path $Stage "psxrecomp-cli\share")
 
 $SetupBat = Join-Path $Stage "SETUP.bat"
-@"
+$SetupBatText = @"
 @echo off
 cd /d "%~dp0"
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0SETUP.ps1"
+echo Syphon Filter 2 Recompiled will use WinGet to install any missing build tools.
+echo Visual Studio is not required. A setup.log file will be written for support; review it before sharing.
+echo.
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0SETUP.ps1" -InstallDependencies
 if errorlevel 1 (
   echo.
   echo Setup failed. Review the message above.
@@ -53,7 +56,9 @@ if errorlevel 1 (
   exit /b 1
 )
 call "%~dp0play.bat"
-"@ | Set-Content -LiteralPath $SetupBat -Encoding ascii
+"@
+$SetupBatText = ($SetupBatText -replace "`r?`n", "`r`n")
+[IO.File]::WriteAllText($SetupBat, $SetupBatText, [Text.Encoding]::ASCII)
 
 if (Test-Path -LiteralPath $OutputPath) {
     Remove-Item -LiteralPath $OutputPath -Force

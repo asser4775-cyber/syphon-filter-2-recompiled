@@ -157,6 +157,13 @@ def audit_archive(archive: pathlib.Path) -> int:
             if info.file_size > MAX_RELEASE_BYTES:
                 errors.append(f"oversized release entry: {name}")
             data = zf.read(info)
+            if rel.lower().endswith(".bat"):
+                try:
+                    data.decode("ascii")
+                except UnicodeDecodeError:
+                    errors.append(f"batch file is not ASCII: {name}")
+                if b"\n" in data.replace(b"\r\n", b""):
+                    errors.append(f"batch file contains bare LF line endings: {name}")
             for hit in private_path_hits(data):
                 errors.append(f"private path pattern {hit!r} in {name}")
             if rel.endswith(".exe"):

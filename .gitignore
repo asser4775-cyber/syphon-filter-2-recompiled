@@ -10,6 +10,7 @@
 /saves/
 /cache/
 /dist/
+/release/setup.log
 *.zip
 
 # User-owned PlayStation inputs and runtime state.
