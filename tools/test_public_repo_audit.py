@@ -150,7 +150,8 @@ class ReleaseAuditTests(unittest.TestCase):
             result = subprocess.run(
                 [shutil.which("pwsh"), "-NoProfile", "-File", str(root / "SETUP.ps1"),
                  "-CuePath", str(cue), "-NoInstallDependencies"],
-                check=False, text=True, stdout=subprocess.PIPE,
+                check=False, text=True, encoding="utf-8", errors="replace",
+                stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT, env=env,
             )
             self.assertNotEqual(result.returncode, 0)
